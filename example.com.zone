@@ -1,0 +1,67 @@
+; Authoritative data for example.com zone
+;
+$ORIGIN example.com.
+$TTL 1D
+@             IN SOA    lora.example.com     root.lora.example.com. (
+              2017112401 ; serial
+              1D ; refresh
+              1H ; retry
+              1W ; expire
+              3H ) ; minimum
+
+; trailing period appends our domain
+example.com.  IN  NS    lora.example.com.
+lora          IN  A     127.0.0.1
+server        IN  A     192.168.25.1
+www           IN  CNAME server
+mail          IN  CNAME server
+test1         IN  A     192.168.25.21
+t1            IN  CNAME test1
+test2         IN  A     192.168.25.22
+test3         IN  A     192.168.25.23
+test4         IN  A     192.168.25.24 ; Mail server MX record
+example.com.  IN  MX    10 mail.example.com. 
+
+00050a.netids  IN NAPTR  50 50 "S" "LWN" "" _lw1a_
+00050a.netids  IN NAPTR  50 50 "S" "LWN" "" _lw1b_
+00050a.netids  IN NAPTR  50 50 "S" "LWN" "" _lw1c_
+00050a.netids  IN NAPTR  90 50 "S" "LWN" "" _lw2_
+00050a.netids  IN NAPTR 100 50 "S" "LWN" "" _lw3_
+
+_lw1a_       IN SRV    5  1  8000  lora1
+_lw1a_       IN SRV    5  1  8000  lora2
+_lw1a_       IN SRV    5  1  8000  lora3
+_lw1a_       IN SRV    5  1  8000  lora4
+
+_lw1b_       IN SRV    8  1  9000  lora6
+_lw1b_       IN SRV    8  1  9000  lora7
+
+_lw1c_       IN SRV    9  1  9001  lora
+_lw2_        IN SRV    5  1  8001  lora
+
+_lw3_        IN SRV    5  1  8002  lora8
+_lw3_        IN SRV    5  1  8002  lora9
+_lw3_        IN SRV    5  1  8002  lora10
+
+e.2.1.0.0.0.0.0.0.8.a.d.f.7.4.6.joineuis  IN NAPTR  50 50 "S" "LWN" "" join1
+join1          IN SRV    5  1  3000  lora
+
+000001.netids   IN NAPTR  50 50 "S" "LWN" ""  nsA
+nsA             IN SRV    5  1  2000  lora
+
+6000ff.netids   IN NAPTR  50 50 "S" "LWN" ""  nsB
+nsB             IN SRV    5  1  2001  lora
+
+4000aa.netids   IN NAPTR  50 50 "S" "LWN" ""  nsC
+nsC             IN SRV    5  1  2002  lora
+
+
+;;                      order pref flags  service  regexp  replacement
+;             IN  NAPTR  50   50   "S"   "LWN"     ""     _LWN._X2H.operator.com.
+;             IN  NAPTR  90   50   "S"   "LWNS"    ""     _LWN._J2H.operator.com
+;             IN  NAPTR 100   50   "S"   "LWN"     ""     _LWN._B2H.operator.com.
+
+;                     Priority Weight  Port    Target
+;             IN  SRV  0        1       443    server1.example.com
+;             IN  SRV  0        2       443    server2.example.com
+

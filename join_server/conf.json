@@ -1,0 +1,21 @@
+{
+    "server": {
+        "joinDomain": "joineuis.lora-alliance.org",
+        "netidDomain": "netids.lora-alliance.org",
+        "httpd_port": 3000,
+        "sql_username": "lora_server",
+        "sql_password": "loraPassword",
+        "sql_hostname": "localhost",
+        "sql_port": 3306,
+        "nonce_age_days": 30,
+        "myJoinEui": "647fda800000012e",
+        "KeyEnvelopeNwk": {
+            "KEKLabel": "foo",
+            "AESKey": "000102030405060708090a0b0c0d0e0f"
+        },
+        "KeyEnvelopeApp": {
+            "KEKLabel": "bar",
+            "AESKey": "f0e0d0c0b0a090807060504030201000"
+        }
+    }
+}

@@ -1,0 +1,36 @@
+{
+    "server": {
+        "VendorID": "aabbcc",
+        "joinDomain": "joineuis.example.com",
+        "netidDomain": "netids.example.com",
+        "httpd_port": 2000,
+        "sql_username": "lora_server",
+        "sql_password": "loraPassword",
+        "sql_hostname": "localhost",
+        "sql_port": 3306,
+        "tcp_listen_port": 5555,
+        "network_id": "0x000001",
+        "dl_rxwin": 1,
+        "leap_seconds": 16,
+        "starting_FCntDwn": 0,
+        "starting_FCntUp": 0,
+        "regionPath": "../network_server",
+        "regions": [
+            { "name": "US902", "conf_file_8ch": "us902_hybrid_gw_conf.json" },
+            { "name": "China779", "conf_file_8ch": "cn779.json" },
+            { "name": "EU433", "conf_file_8ch": "eu433.json" },
+            { "name": "Australia915", "conf_file_8ch": "au915_hybrid.json" },
+            { "name": "EU868", "conf_file_8ch": "eu868.json" },
+            { "name": "AS923",
+                "conf_file_8ch": "arib_8ch_gw_conf.json",
+                "conf_file_16ch": "arib_16ch_gw_conf.json"
+            }
+        ],
+        "nonce_age_days": 30,
+        "encrypt_dl_mac_cmds": false,
+        "KeyEnvelopeNSJS": {
+            "KEKLabel": "foo",
+            "AESKey": "000102030405060708090a0b0c0d0e0f"
+        }
+    }
+}

@@ -1,0 +1,108 @@
+{
+    "SX1301_conf": {
+        "lorawan_public": true,
+        "radio_0": {
+            "freq": 433475000
+        },
+        "radio_1": {
+            "freq": 434275000
+        },
+        "chan_multiSF_0": {
+            /* Lora MAC channel, 125kHz, all SF,  433.175MHz = 433.475 - 0.3 */
+            "enable": true,
+            "radio": 0,
+            "if": -300000
+        },
+        "chan_multiSF_1": {
+            /* Lora MAC channel, 125kHz, all SF,  433.375MHz = 433.475 - 0.1 */
+            "enable": true,
+            "radio": 0,
+            "if": -100000
+        },
+        "chan_multiSF_2": {
+            /* Lora MAC channel, 125kHz, all SF,  433.575MHz = 433.475 + 0.1 */
+            "enable": true,
+            "radio": 0,
+            "if": 100000
+        },
+        "chan_multiSF_3": {
+            /* Lora MAC channel, 125kHz, all SF,  433.775MHz = 433.475 + 0.3 */
+            "enable": true,
+            "radio": 0,
+            "if": 300000
+        },
+        "chan_multiSF_4": {
+            /* Lora MAC channel, 125kHz, all SF,  433.975MHz = 434.275 - 0.3 */
+            "enable": true,
+            "radio": 1,
+            "if": -300000
+        },
+        "chan_multiSF_5": {
+            /* Lora MAC channel, 125kHz, all SF,  434.175MHz = 434.275 - 0.1 */
+            "enable": true,
+            "radio": 1,
+            "if": -100000
+        },
+        "chan_multiSF_6": {
+            /* Lora MAC channel, 125kHz, all SF,  434.375MHz = 434.275 + 0.1 */
+            "enable": true,
+            "radio": 1,
+            "if": 100000
+        },
+        "chan_multiSF_7": {
+            /* Lora MAC channel, 125kHz, all SF,  433.575MHz = 434.275 + 0.3 */
+            "enable": true,
+            "radio": 1,
+            "if": 300000
+        },
+        "chan_Lora_std": {
+            /* Lora MAC channel, 250kHz, SF7, 434.375 = 434.275 + 0.1 */
+            "enable": true,
+            "radio": 1,
+            "if": 100000,
+            "bandwidth": 250000,
+            "spread_factor": 7
+        },
+        "chan_FSK": {
+            /* FSK 50kbps channel, 433.575MHz = 433.475 + 0.1 */
+            "enable": true,
+            "radio": 0,
+            "if": 310000,
+            "bandwidth": 125000,
+            "datarate": 50000
+        }
+    },
+
+    "lorawan": {
+        "beacon_period": 128,
+        "beacon_size": 17,
+        "beacon_hz": 434665000,
+        "beacon_sf": 9,
+        "beacon_bw": 125,
+        "beacon_rfuOffset1": 0,
+        "beacon_rfuOffset2": 0
+    },
+
+    "lora_server": {
+        "data_rates": [
+            { "bw": 125, "sf": 12, "fdev_khz": 0 }, /* dr0 */
+            { "bw": 125, "sf": 11, "fdev_khz": 0 }, /* dr1 */
+            { "bw": 125, "sf": 10, "fdev_khz": 0 }, /* dr2 */
+            { "bw": 125, "sf": 9, "fdev_khz": 0 }, /* dr3 */
+            { "bw": 125, "sf": 8, "fdev_khz": 0 }, /* dr4 */
+            { "bw": 125, "sf": 7, "fdev_khz": 0 }, /* dr5 */
+            { "bw": 250, "sf": 7, "fdev_khz": 0 }, /* dr6 */
+            { "bw": 125, "sf": 50000, "fdev_khz": 50000 } /* dr7 */
+        ],
+        "uplink_dr_max": 5,
+        "rx2_freq_hz": 434665000,
+        "rx2_dr": 0,
+        "dl_tx_dbm": 14,
+        "ping_freq_hz": 434665000,
+        "ping_dr": 3,
+        "default_txpwr_idx": 1,
+        "max_txpwr_idx": 5,
+        "init_chmasks": [ "0x0007" ]
+    }
+
+}

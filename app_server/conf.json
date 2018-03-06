@@ -1,0 +1,20 @@
+{
+    "server": {
+        "joinDomain": "joineuis.example.com",
+        "netidDomain": "netids.example.com",
+        "AS_ID": "localhost",
+        "httpd_port": 4000,
+        "sql_username": "lora_server",
+        "sql_password": "loraPassword",
+        "sql_hostname": "localhost",
+        "sql_port": 3306,
+        "KeyEnvelopeApp": {
+            "KEKLabel": "bar",
+            "AESKey": "f0e0d0c0b0a090807060504030201000"
+        },
+        "dnsOverride": {
+            "js_url": "http://localhost:3000"
+        }
+    }
+}
+
