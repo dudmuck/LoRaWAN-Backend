@@ -14,9 +14,11 @@ HTTP headers contain `Accept: application/json` for JSON over HTTP, otherwise it
 Import `structure.sql` using phpmysql or using mysql command line.
 
 ## Build
-Install dependances:
+Install dependencies:
+
 raspbian/debian: `sudo apt-get install libjson-c-dev libgcrypt20-dev libmicrohttpd-dev libcurl-dev`
-RPM based: `sudo dnf install json-c-devel libgcrypt-devel libmicrohttpd-devel libcurl-devel`
+
+or RPM based: `sudo dnf install json-c-devel libgcrypt-devel libmicrohttpd-devel libcurl-devel`
 * `mkdir build`
 * `cd build`
 * `cmake ..`
@@ -29,7 +31,8 @@ For testing on your local machine, i.e. when using a NetID or JoinEUI which does
 
 Example named.conf and example zone files are provided here.  Modify your BIND server configuration files to add the example.com master zone as shown in named.conf, and point it to the example.com.zone file.
 
-If using rasbpian (fir exanoke( the DNS server package is called bind9, and files go into /etc/bind. 
+If using rasbpian for example, the DNS server package is called bind9, and files go into /etc/bind. 
+
 All DNS lookups are using domain names provided in conf.json files: `joinDomain` and `netidDomain`.  The JoinEUI or NetID is prepended to these domain names at lookup.  When you are using your own DNS server, conf.json should have example.com, otherwise use lora alliance domain if you're using real NetID/JoinEUI.
 
 When you are using example.com for lookups on your own DNS server, first line of /etc/resolv.conf must point to your DNS server.  When using DHCP client, resolve.conf is written to when leasing IP address, but this must be overridden to point to your own DNS instead.  The procedure for forcing fixed name server is resolv.conf varies for each operating system.
@@ -47,7 +50,7 @@ ABP devices have permanent session on network server, and do not involve join se
 Each of the servers' httpd will serve basic html when web-browser points to the listening http port. This interface permits provisioning of end devices.  An OTA end device must be entered into both NS and JS.  Adding end device to NS establishes the forward-to-NetID (this NS = blank, other NS, or ask HomeNSReq), and profiles if the end device is home on NS.   
 
 For lorawan-1.0 devices: FNwkSIntKey, SNwkSintKey, SNwkSintKey all contain the same value in database, but are collectively known as NwkSKey over JSON.
-For lorawan-1.1 devices: FNwkSIntKey, SNwkSintKey, SNwkSintKey each are unique in database.
+For lorawan-1.1 devices: FNwkSIntKey, SNwkSintKey, SNwkSintKey each have unique value.
 
 ABP end devices dont involve the join server, because ABP has no concept of DevEUI/JoinEUI/root keys.  For adding ABP end device, only NwkAddr portion of DevAddr is entered into NS.  NwkAddr is the portion of DevAddr which is unique to each end device.  The resulting DevAddr is derived from both NwkAddr and NetID of NS.  Provisioning In the application server (AS) the DevAddr is entered along with permanent AppSKey.
 TODO: adding ABP end device for roaming (not home on this NS).
