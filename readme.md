@@ -37,8 +37,6 @@ All DNS lookups are using domain names provided in conf.json files: `joinDomain`
 
 When you are using example.com for lookups on your own DNS server, first line of /etc/resolv.conf must point to your DNS server.  When using DHCP client, resolve.conf is written to when leasing IP address, but this must be overridden to point to your own DNS instead.  The procedure for forcing fixed name server is resolv.conf varies for each operating system.
 
-To send/receive application payload, the end device must exist on application server. For OTA device, the DevEUI must be listed in application server prior to receiving first uplink. For ABP device, the DevAddr and AppSKey must exist in application server.
-
 ## Server Configuration
 Each of the servers are configured locally using conf.json in the server's source directory.  conf.json is used for configuration changes which would require restarting the server when changes are made.  Other changes, such as configuring roaming NetIDs do not require restart of server.
 
@@ -63,6 +61,9 @@ TODO: adding ABP end device for roaming (not home on this NS).
 1.  Enter NwkAddr portion of DevAddr into NS.  NwkAddr is the part of DevAddr which is unique to each end-device.   Use `createHome` button if this end-device is home on this NS.
 2.  Enter network session key(s) into `SKeys`, if this end-device is home on this NS.  For LoRaWAN-1.0, all 3 network session keys are of same value.  For 1.1, all 3 are unique.
 3.  Enter DevAddr and AppSKey into application server
+
+To send/receive application payload, the end device must exist on application server. For OTA device, the DevEUI must be listed in application server prior to receiving first uplink. For ABP device, the DevAddr and AppSKey must exist in application server.
+
 
 ## Join Server
 Point your browser at the `httpd_port` in `join_server/conf.json`
