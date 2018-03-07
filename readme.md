@@ -3,7 +3,7 @@
 # LoRaWAN Backend
 
 Standard system libraries used:
-* [libcurl](https://curl.haxx.se/libcurl/) http client
+* [libcurl](https://curl.haxx.se/libcurl/) http client (for http post)
 * [json-c](https://github.com/json-c/json-c/wiki) JSON generating and parsing
 * [microhttpd](https://www.gnu.org/software/libmicrohttpd/) http server
 * [gcrypt](https://gnupg.org/software/libgcrypt/index.html) Key Envelope `GCRY_CIPHER_MODE_AESWRAP`
