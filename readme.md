@@ -24,6 +24,11 @@ or RPM based: `sudo dnf install json-c-devel libgcrypt-devel libmicrohttpd-devel
 * `cmake ..`
 * `make`
 
+Three executables are built, which must each be run separately, from the build directory:
+* 'network_server'
+* 'join_server'
+* 'app_server'
+
 ## DNS setup
 LoRaWAN-backend performs hostname lookups using NAPTR and SRV records.
 
@@ -66,14 +71,14 @@ To send/receive application payload, the end device must exist on application se
 
 
 ## Join Server
-Point your browser at the `httpd_port` in `join_server/conf.json`
+Point your browser at the `httpd_port` in `join_server/conf.json`  (default 3000)
 
 Join Server only applies to OTA end devices. 
 LoRaWAN-1.0 devices only have NwkKey root key.
 LoRaWaN-1.1 devices must have both root keys: NwkKey and AppKey.
 
 ## Application Server
-Point your browser at the `httpd_port` in `app_server/conf.json`
+Point your browser at the `httpd_port` in `app_server/conf.json`  (default 4000)
 
 Although the specification doesnt cover interface to AS, the same http-json messaging (as in the standard) is also used with AS for simplicity.
 
@@ -82,7 +87,7 @@ Although the specification doesnt cover interface to AS, the same http-json mess
 In LoRaWAN 1.1, none of this is needed, since NS passes through AFCntDown to end device.
 
 ## Network Server
-Point your browser at the `httpd_port` in `network_server/conf.json`
+Point your browser at the `httpd_port` in `network_server/conf.json`  (default 2000)
 
 Upon reception of (re)join, DevEUI must be in network server's list of DevEUIs or uplink will be dropped.  However, if an (un)confirmed uplink is received with a DevAddr for a network in the roaming list, a roam start request will be issued to the NetID that was  derived from DevAddr.
 
