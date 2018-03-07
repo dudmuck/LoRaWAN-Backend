@@ -33,12 +33,12 @@ Example named.conf and example zone files are provided here.  Modify your BIND s
 
 If using rasbpian for example, the DNS server package is called bind9, and files go into /etc/bind. 
 
-All DNS lookups are using domain names provided in conf.json files: `joinDomain` and `netidDomain`.  The JoinEUI or NetID is prepended to these domain names at lookup.  When you are using your own DNS server, conf.json should have example.com, otherwise use lora alliance domain if you're using real NetID/JoinEUI.
+All DNS lookups are using domain names provided in `conf.json` files: `joinDomain` and `netidDomain`.  The JoinEUI or NetID is prepended to these domain names at lookup.  When you are using your own DNS server, `conf.json` should have example.com domain, otherwise use lora alliance domain if you're using real NetID/JoinEUI.
 
-When you are using example.com for lookups on your own DNS server, first line of /etc/resolv.conf must point to your DNS server.  When using DHCP client, resolve.conf is written to when leasing IP address, but this must be overridden to point to your own DNS instead.  The procedure for forcing fixed name server is resolv.conf varies for each operating system.
+When you are using fake example.com domain for lookups on your own DNS server, first line of /etc/resolv.conf must point to your DNS server.  When using DHCP client, resolve.conf is written to when leasing IP address, but this must be overridden to point to your own DNS instead.  The procedure for forcing fixed name server is resolv.conf varies for each operating system.
 
 ## Server Configuration
-Each of the servers are configured locally using conf.json in the server's source directory.  conf.json is used for configuration changes which would require restarting the server when changes are made.  Other changes, such as configuring roaming NetIDs do not require restart of server.
+Each of the servers are configured locally using `conf.json` in the server's source directory.  `conf.json` is used for configuration changes which would require restarting the server when changes are made.  Other changes, such as configuring roaming NetIDs do not require restart of server.
 
 ### sessions
 OTA devices sessions are created by join server when answering join request, for a lifetime stored on join server.
