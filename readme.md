@@ -42,6 +42,8 @@ All DNS lookups are using domain names provided in `conf.json` files: `joinDomai
 
 When you are using fake example.com domain for lookups on your own DNS server, first line of /etc/resolv.conf must point to your DNS server.  When using DHCP client, resolve.conf is written to when leasing IP address, but this must be overridden to point to your own DNS instead.  The procedure for forcing fixed name server is resolv.conf varies for each operating system.
 
+`./resove` test program will print DNS lookup result.
+
 ## Server Configuration
 Each of the servers are configured locally using `conf.json` in the server's source directory.  `conf.json` is used for configuration changes which would require restarting the server when changes are made.  Other changes, such as configuring roaming NetIDs do not require restart of server.
 
