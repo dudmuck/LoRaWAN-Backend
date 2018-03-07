@@ -25,9 +25,9 @@ or RPM based: `sudo dnf install json-c-devel libgcrypt-devel libmicrohttpd-devel
 * `make`
 
 Three executables are built, which must each be run separately, from the build directory:
-* 'network_server'
-* 'join_server'
-* 'app_server'
+* `network_server`
+* `join_server`
+* `app_server`
 
 ## DNS setup
 LoRaWAN-backend performs hostname lookups using NAPTR and SRV records.
