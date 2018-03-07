@@ -57,8 +57,11 @@ Each of the servers' httpd will serve basic html when web-browser points to the 
 For lorawan-1.0 devices: FNwkSIntKey, SNwkSintKey, SNwkSintKey all contain the same value in database, but are collectively known as NwkSKey over JSON.
 For lorawan-1.1 devices: FNwkSIntKey, SNwkSintKey, SNwkSintKey each have unique value.
 
-ABP end devices don't involve the join server, because ABP has no concept of DevEUI/JoinEUI/root keys.  For adding ABP end device, only NwkAddr portion of DevAddr is entered into NS.  NwkAddr is the portion of DevAddr which is unique to each end device.  The resulting DevAddr is derived from both NwkAddr and NetID of NS.  Provisioning In the application server (AS) the DevAddr is entered along with permanent AppSKey.
-TODO: adding ABP end device for roaming (not home on this NS).
+ABP end devices don't involve the join server, because ABP has no concept of DevEUI/JoinEUI/root keys.
+
+For adding ABP end device, only NwkAddr portion of DevAddr is entered into NS.  NwkAddr is the portion of DevAddr which is unique to each end device.  The resulting DevAddr is derived from both NwkAddr and NetID of NS.
+
+ABP provisioning In the application server (AS), the DevAddr is entered along with permanent AppSKey.
 
 ### OTA end-device provisioning steps:
 1. Enter DevEUI into NS, using `createHome` if this NS is home NS.
