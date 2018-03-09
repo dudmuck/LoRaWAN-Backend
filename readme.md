@@ -3,7 +3,7 @@
 # LoRaWAN Backend
 
 Standard system libraries used:
-* [libcurl](https://curl.haxx.se/libcurl/) http client
+* [libcurl](https://curl.haxx.se/libcurl/) http client (for http post)
 * [json-c](https://github.com/json-c/json-c/wiki) JSON generating and parsing
 * [microhttpd](https://www.gnu.org/software/libmicrohttpd/) http server
 * [gcrypt](https://gnupg.org/software/libgcrypt/index.html) Key Envelope `GCRY_CIPHER_MODE_AESWRAP`
@@ -24,6 +24,11 @@ or RPM based: `sudo dnf install json-c-devel libgcrypt-devel libmicrohttpd-devel
 * `cmake ..`
 * `make`
 
+Three executables are built, which must each be run separately, from the build directory:
+* `./network_server`
+* `./join_server`
+* `./app_server`
+
 ## DNS setup
 LoRaWAN-backend performs hostname lookups using NAPTR and SRV records.
 
@@ -33,14 +38,14 @@ Example named.conf and example zone files are provided here.  Modify your BIND s
 
 If using rasbpian for example, the DNS server package is called bind9, and files go into /etc/bind. 
 
-All DNS lookups are using domain names provided in conf.json files: `joinDomain` and `netidDomain`.  The JoinEUI or NetID is prepended to these domain names at lookup.  When you are using your own DNS server, conf.json should have example.com, otherwise use lora alliance domain if you're using real NetID/JoinEUI.
+All DNS lookups are using domain names provided in `conf.json` files: `joinDomain` and `netidDomain`.  The JoinEUI or NetID is prepended to these domain names at lookup.  When you are using your own DNS server, `conf.json` should have example.com domain, otherwise use lora alliance domain if you're using real NetID/JoinEUI.
 
-When you are using example.com for lookups on your own DNS server, first line of /etc/resolv.conf must point to your DNS server.  When using DHCP client, resolve.conf is written to when leasing IP address, but this must be overridden to point to your own DNS instead.  The procedure for forcing fixed name server is resolv.conf varies for each operating system.
+When you are using fake example.com domain for lookups on your own DNS server, first line of /etc/resolv.conf must point to your DNS server.  When using DHCP client, resolve.conf is written to when leasing IP address, but this must be overridden to point to your own DNS instead.  The procedure for forcing fixed name server is resolv.conf varies for each operating system.
 
-To send/receive application payload, the end device must exist on application server. For OTA device, the DevEUI must be listed in application server prior to receiving first uplink. For ABP device, the DevAddr and AppSKey must exist in application server.
+`./resove` test program will print DNS lookup result.
 
 ## Server Configuration
-Each of the servers are configured locally using conf.json in the server's source directory.  conf.json is used for configuration changes which would require restarting the server when changes are made.  Other changes, such as configuring roaming NetIDs do not require restart of server.
+Each of the servers are configured locally using `conf.json` in the server's source directory.  `conf.json` is used for configuration changes which would require restarting the server when changes are made.  Other changes, such as configuring roaming NetIDs do not require restart of server.
 
 ### sessions
 OTA devices sessions are created by join server when answering join request, for a lifetime stored on join server.
@@ -52,8 +57,11 @@ Each of the servers' httpd will serve basic html when web-browser points to the 
 For lorawan-1.0 devices: FNwkSIntKey, SNwkSintKey, SNwkSintKey all contain the same value in database, but are collectively known as NwkSKey over JSON.
 For lorawan-1.1 devices: FNwkSIntKey, SNwkSintKey, SNwkSintKey each have unique value.
 
-ABP end devices don't involve the join server, because ABP has no concept of DevEUI/JoinEUI/root keys.  For adding ABP end device, only NwkAddr portion of DevAddr is entered into NS.  NwkAddr is the portion of DevAddr which is unique to each end device.  The resulting DevAddr is derived from both NwkAddr and NetID of NS.  Provisioning In the application server (AS) the DevAddr is entered along with permanent AppSKey.
-TODO: adding ABP end device for roaming (not home on this NS).
+ABP end devices don't involve the join server, because ABP has no concept of DevEUI/JoinEUI/root keys.
+
+For adding ABP end device, only NwkAddr portion of DevAddr is entered into NS.  NwkAddr is the portion of DevAddr which is unique to each end device.  The resulting DevAddr is derived from both NwkAddr and NetID of NS.
+
+Add ABP end-device to application server: enter DevAddr along with permanent AppSKey.
 
 ### OTA end-device provisioning steps:
 1. Enter DevEUI into NS, using `createHome` if this NS is home NS.
@@ -64,15 +72,18 @@ TODO: adding ABP end device for roaming (not home on this NS).
 2.  Enter network session key(s) into `SKeys`, if this end-device is home on this NS.  For LoRaWAN-1.0, all 3 network session keys are of same value.  For 1.1, all 3 are unique.
 3.  Enter DevAddr and AppSKey into application server
 
+To send/receive application payload, the end device must exist on application server. For OTA device, the DevEUI must be listed in application server prior to receiving first uplink. For ABP device, the DevAddr and AppSKey must exist in application server.
+
+
 ## Join Server
-Point your browser at the `httpd_port` in `join_server/conf.json`
+Point your browser at the `httpd_port` in `join_server/conf.json`  (default port 3000)
 
 Join Server only applies to OTA end devices. 
 LoRaWAN-1.0 devices only have NwkKey root key.
 LoRaWaN-1.1 devices must have both root keys: NwkKey and AppKey.
 
 ## Application Server
-Point your browser at the `httpd_port` in `app_server/conf.json`
+Point your browser at the `httpd_port` in `app_server/conf.json`  (default port 4000)
 
 Although the specification doesnt cover interface to AS, the same http-json messaging (as in the standard) is also used with AS for simplicity.
 
@@ -81,11 +92,14 @@ Although the specification doesnt cover interface to AS, the same http-json mess
 In LoRaWAN 1.1, none of this is needed, since NS passes through AFCntDown to end device.
 
 ## Network Server
-Point your browser at the `httpd_port` in `network_server/conf.json`
+Point your browser at the `httpd_port` in `network_server/conf.json`  (default port 2000)
 
 Upon reception of (re)join, DevEUI must be in network server's list of DevEUIs or uplink will be dropped.  However, if an (un)confirmed uplink is received with a DevAddr for a network in the roaming list, a roam start request will be issued to the NetID that was  derived from DevAddr.
 
-## network server sessions
+### network server gateway interface
+The gateway interface is not covered in specification.   Gateway connection is TCP socket.  It only functions with [this packet forwarder](https://github.com/dudmuck/packet_forwarder/tree/master/forwarder).
+
+### network server sessions
 OTA end devices have a session expiration provided by join server at join-accept.  When lifetime expires for a 1.1 device, a force rejoin request will be sent to end device, causing a rejoin request from end device to create a new session. For 1.1 the old session is deleted when ReKey indication is received by NS.
 
 When lifetime expires for 1.0 OTA device, the end device will be dropped off the network and can only send another join request.  For 1.0 ,the old session is removed when an (un)conf uplink is received passing MIC check.  The list of end devices may show a single end device more than once when a new session has been created, without old sessions being deleted by uplink.
@@ -96,8 +110,6 @@ In contrast, an ABP end-devices have permanent session, never expires.
 Via the simple browser interface to NS, to provision end device to operate on a visited network, home NetID of end device will be shown in "forward to NetID" column, or value of "HomeNSReq" if the join server is to be asked for home NetID of end device.  Use create button to add device without home profile.  For roaming to be allowed to the home NetID, this NetID must be listed on "networks" page, which determines roaming policy to that NetID.  The choice of passive vs handover roaming is established on "networks" page.
 To provision end device on the other home NS, the createHome button must be used to add profiles for end device.
 Roaming start: roam can be initiated by (re)join request from end device, or in the case of ABP by an (un)confirmed uplink.
-
-
 
 
 ## assumptions, or required variations from LoRaWAN-Backend specification
