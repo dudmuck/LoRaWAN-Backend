@@ -39,7 +39,7 @@ printElapsed(const mote_t* mote)
         perror ("clock_gettime");
 
     s = difftimespec(now, mote->read_host_time);
-    printf("\n\e[0;40;33m%.3f \e[0m ", s);
+    printf("\n\e[0;40;33m%016"PRIx64" / %08x  %.3f\e[0m ", mote->devEui, mote->devAddr, s);
 }
 
 uint32_t
@@ -897,7 +897,7 @@ generateDLMetaData(const ULMetaData_t *ulmd, uint8_t rxdrOffset1, DLMetaData_t* 
         json_object_object_add(ret, RFRegion, json_object_new_string(ulmd->RFRegion));
 
         if (dlmd->ClassMode == 'A')
-            sNS_band_conv(dlmd->DevEUI, dlmd->DevAddr, ulmd->ULFreq, ulmd->DataRate, rxdrOffset1, ulmd->RFRegion, dlmd);
+            sNS_band_conv(dl_rxwin, dlmd->DevEUI, dlmd->DevAddr, ulmd->ULFreq, ulmd->DataRate, rxdrOffset1, ulmd->RFRegion, dlmd);
         else
             printf("\e[31mgenerateDLMetaData class '%c'\e[0m ", dlmd->ClassMode);
 

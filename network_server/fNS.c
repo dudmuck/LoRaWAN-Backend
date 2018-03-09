@@ -164,8 +164,9 @@ fNS_downlink(const DLMetaData_t* DLMetaData, unsigned long reqTid, const char* c
         else
             return Success;
     } // ..if (DLMetaData->ClassMode == 'B')
-
-    if (DLMetaData->ClassMode != 'A') {
+    else if (DLMetaData->ClassMode == 'C') {
+        printf("ClassC ");
+    } else if (DLMetaData->ClassMode != 'A') {
         printf("\e[31m###### TODO class %c ######\e[0m ", DLMetaData->ClassMode);
         return XmitFailed;
     }
@@ -217,8 +218,12 @@ fNS_downlink(const DLMetaData_t* DLMetaData, unsigned long reqTid, const char* c
             MAC_PRINTF("FSK fdev:%d, %dbps", tx_pkt.f_dev, tx_pkt.datarate );
         }
 
+        if (DLMetaData->ClassMode == 'C') {
+            tx_pkt.tx_mode = IMMEDIATE;
+        } else
+            tx_pkt.count_us = bestULToken.gateway.count_us + (DLMetaData->RXDelay1+1) * 1000000;
+
         tx_pkt.freq_hz = DLMetaData->DLFreq2 * 1000000;
-        tx_pkt.count_us = bestULToken.gateway.count_us + (DLMetaData->RXDelay1+1) * 1000000;
 
         MAC_PRINTF("delay%u %uHz\e[0m\n", DLMetaData->RXDelay1+1, tx_pkt.freq_hz);
         if (gateway_id_write_downlink(gw->eui, &tx_pkt) < 0)

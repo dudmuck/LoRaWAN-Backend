@@ -431,8 +431,7 @@ sNS_sendHRStartReq(MYSQL* sc, mote_t* mote, uint32_t homeNetID)
     return ret;
 } // ..sNS_sendHRStartReq()
 
-int
-sNS_band_conv(uint64_t devEui, uint32_t devAddr, float ULFreq, uint8_t ULDataRate, uint8_t rxdrOffset1, const char* ULRFRegion, DLMetaData_t* dlMetaData)
+int sNS_band_conv(uint8_t rw, uint64_t devEui, uint32_t devAddr, float ULFreq, uint8_t ULDataRate, uint8_t rxdrOffset1, const char* ULRFRegion, DLMetaData_t* dlMetaData)
 {
     struct _region_list* rl;
 
@@ -441,13 +440,13 @@ sNS_band_conv(uint64_t devEui, uint32_t devAddr, float ULFreq, uint8_t ULDataRat
         if (rl->region.RFRegion != ULRFRegion)
             continue;
 
-        if (dl_rxwin == 1) {
+        if (rw == 1) {
             if (rl->region.regional.rx1_band_conv != NULL) {
                 rl->region.regional.rx1_band_conv(ULFreq, ULDataRate, rxdrOffset1, dlMetaData);
                 return 0;
             } else
                 return -1;
-        } else if (dl_rxwin == 2) {
+        } else if (rw == 2) {
             unsigned n;
             char str[32];
             dlMetaData->DLFreq1 = 0;
@@ -823,15 +822,16 @@ sNS_phy_downlink_local(mote_t* mote, ULMetaData_t* ulmd, uint8_t rxDelay1, char 
         }
     }
 
+    dlMetaData.ClassMode = classMode;
     if (s->ClassB.ping_period > 0 && classMode == 'B') {
         if (getPingConfig(mote->devEui, mote->devAddr, &dlMetaData) < 0)
             return XmitFailed;
         dlMetaData.PingPeriod = s->ClassB.ping_period;
-        dlMetaData.ClassMode = 'B';
     } else if (classMode == 'A') {
         dlMetaData.RXDelay1 = rxDelay1;
-        dlMetaData.ClassMode = 'A';
-        sNS_band_conv(mote->devEui, mote->devAddr ,ulmd->ULFreq, ulmd->DataRate, mote->rxdrOffset1, ulmd->RFRegion, &dlMetaData);
+        sNS_band_conv(dl_rxwin, mote->devEui, mote->devAddr, ulmd->ULFreq, ulmd->DataRate, mote->rxdrOffset1, ulmd->RFRegion, &dlMetaData);
+    } else if (classMode == 'C') {
+        sNS_band_conv(2, mote->devEui, mote->devAddr, ulmd->ULFreq, ulmd->DataRate, mote->rxdrOffset1, ulmd->RFRegion, &dlMetaData);
     } else {
         printf("\e[31mTODO sNS_phy_downlink_local ClassMode %c\e[0m\n", classMode);
         return XmitFailed;
@@ -1354,6 +1354,14 @@ parse_mac_command(mote_t* mote, const ULMetaData_t* ulmd, const uint8_t* rx_cmd_
                 s->session_start_at_uplink = true;
                 network_controller_mote_init(s, ulmd->RFRegion, "mac-cmd");
                 break;
+            case MOTE_MAC_DEVICE_MODE_IND:
+                rx_cmd_buf_idx++;
+                s->classModeInd = rx_cmd_buf[rx_cmd_buf_idx++];
+                printf("MOTE_MAC_DEVICE_MODE_IND %u ", s->classModeInd);
+                cmd_buf[0] = SRV_MAC_DEVICE_MODE_CONF;
+                cmd_buf[1] = s->classModeInd;
+                put_queue_mac_cmds(s, 2, cmd_buf, false);
+                break;
             case MOTE_MAC_REJOIN_PARAM_ANS:
                 rx_cmd_buf_idx++;
                 i = rx_cmd_buf[rx_cmd_buf_idx++];
@@ -1620,9 +1628,10 @@ sNS_schedule_downlink(mote_t* mote)
         block.b.FCnt = FCntDown;
         block.b.zero8 = 0;
         block.b.lenMsg = s->downlink.PHYPayloadLen;
-        if (has_rx_fhdr && mote->session.OptNeg && tx_fhdr->FCtrl.dlBits.ACK)
+        if (has_rx_fhdr && s->newFCntUp && mote->session.OptNeg && tx_fhdr->FCtrl.dlBits.ACK) {
             block.b.confFCnt = rx_fhdr->FCnt;
-        else
+            s->newFCntUp = false;   // single use
+        } else
             block.b.confFCnt = 0;
         MAC_PRINTF("\e[36mdownmic-ConFFcntUp%u\e[0m ", block.b.confFCnt);
         *mic_ptr = LoRa_GenerateDataFrameIntegrityCode(&block, mote->session.SNwkSIntKeyBin, s->downlink.PHYPayloadBin);
@@ -1850,6 +1859,7 @@ sNS_uplink(mote_t* mote, const sql_t* sql, ULMetaData_t* ulmd, bool* discard)
         return Other;
     }
 
+    s->newFCntUp = true;
     if (sql->OptNeg) {
         int ch;
         block_t block;
@@ -1899,8 +1909,9 @@ sNS_uplink(mote_t* mote, const sql_t* sql, ULMetaData_t* ulmd, bool* discard)
                 mote->ULPHYPayloadLen = 0;  // prevent further handling of this uplink
                 return MICFailed;
             }
-        } else
+        } else {
             s->ConfFCntDown = 0;
+        }
     } else {
         uint32_t calculated_mic, rx_mic;
         block_t block;
@@ -2366,6 +2377,20 @@ hNS_to_sNS_downlink(MYSQL* sc, mote_t* mote, unsigned long reqTid, const char* r
         result = sNS_finish_phy_downlink(mote, &sql, 'B', ansJobj);  /* class B? send to fNS now */
         printf("classB-send-result:%s\n", result);
         return result;
+    } else {
+        const char* result;
+        char buf[32];
+        deviceProfileReq(sc, mote->devEui, mote->devAddr, SupportsClassC, buf, sizeof(buf));
+        printf("SupportsClassC:%c ", buf[0]);
+        if (buf[0] == '1') {
+            /* LoRaWAN-1.1 will tell us device class, but LoRaWAN-1.0 will not */
+            if ((mote->session.OptNeg && s->classModeInd == CLASS_C) || !mote->session.OptNeg) {
+                sNS_schedule_downlink(mote);
+                result = sNS_finish_phy_downlink(mote, &sql, 'C', ansJobj);  /* class C? send to fNS now */
+                printf("classC-send-result:%s\n", result);
+                return result;
+            }
+        }
     }
 
     return NULL;
@@ -2454,14 +2479,13 @@ sNS_finish_phy_downlink(mote_t* mote, const sql_t* sql, char classMode, json_obj
             dlMetaData.DevAddr = NONE_DEVADDR;
         }
 
+        dlMetaData.ClassMode = classMode;
         if (s->ClassB.ping_period > 0 && classMode == 'B') {
             if (getPingConfig(mote->devEui, mote->devAddr, &dlMetaData) < 0)
                 return Other;
             dlMetaData.PingPeriod = s->ClassB.ping_period;
-            dlMetaData.ClassMode = 'B';
             printf( "B-PingPeriod:%u ", dlMetaData.PingPeriod);
         } else {
-            dlMetaData.ClassMode = 'A';
             dlMetaData.RXDelay1 = rxDelay1;
         }
 

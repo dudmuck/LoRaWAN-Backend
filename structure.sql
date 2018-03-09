@@ -3,7 +3,7 @@
 -- http://www.phpmyadmin.net
 --
 -- Host: localhost
--- Generation Time: Feb 20, 2018 at 05:43 PM
+-- Generation Time: Mar 09, 2018 at 03:17 PM
 -- Server version: 5.5.59-0+deb8u1
 -- PHP Version: 5.6.33-0+deb8u1
 
@@ -37,7 +37,7 @@ CREATE TABLE IF NOT EXISTS `activemotes` (
   `downlinkStatus` text,
 `ID` int(10) unsigned NOT NULL,
   `forwardTo` varchar(32) DEFAULT NULL
-) ENGINE=InnoDB AUTO_INCREMENT=13 DEFAULT CHARSET=armscii8;
+) ENGINE=InnoDB AUTO_INCREMENT=20 DEFAULT CHARSET=armscii8;
 
 -- --------------------------------------------------------
 
@@ -97,7 +97,7 @@ ALTER TABLE `configuration`
 -- AUTO_INCREMENT for table `activemotes`
 --
 ALTER TABLE `activemotes`
-MODIFY `ID` int(10) unsigned NOT NULL AUTO_INCREMENT,AUTO_INCREMENT=13;--
+MODIFY `ID` int(10) unsigned NOT NULL AUTO_INCREMENT,AUTO_INCREMENT=20;--
 -- Database: `lora_join`
 --
 CREATE DATABASE IF NOT EXISTS `lora_join` DEFAULT CHARACTER SET latin1 COLLATE latin1_swedish_ci;
@@ -126,14 +126,15 @@ CREATE TABLE IF NOT EXISTS `joinmotes` (
   `eui` bigint(20) unsigned NOT NULL,
   `NwkKey` binary(16) DEFAULT NULL,
   `AppKey` binary(16) DEFAULT NULL,
-  `RJcount1_last` int(10) unsigned DEFAULT NULL,
-  `DevNonce_last` int(10) unsigned DEFAULT NULL,
+  `RJcount1_last` int(10) unsigned DEFAULT '0',
+  `DevNonce_last` int(10) unsigned DEFAULT '0',
   `JSIntKey` binary(16) DEFAULT NULL,
   `JSEncKey` binary(16) DEFAULT NULL,
   `homeNetID` int(8) unsigned DEFAULT NULL,
 `ID` int(10) unsigned NOT NULL,
-  `Lifetime` int(10) unsigned NOT NULL
-) ENGINE=InnoDB AUTO_INCREMENT=12 DEFAULT CHARSET=armscii8;
+  `Lifetime` int(10) unsigned NOT NULL,
+  `joinNonce` mediumint(8) unsigned DEFAULT '0'
+) ENGINE=InnoDB AUTO_INCREMENT=17 DEFAULT CHARSET=armscii8;
 
 -- --------------------------------------------------------
 
@@ -190,7 +191,7 @@ ALTER TABLE `nonces`
 -- AUTO_INCREMENT for table `joinmotes`
 --
 ALTER TABLE `joinmotes`
-MODIFY `ID` int(10) unsigned NOT NULL AUTO_INCREMENT,AUTO_INCREMENT=12;--
+MODIFY `ID` int(10) unsigned NOT NULL AUTO_INCREMENT,AUTO_INCREMENT=17;--
 -- Database: `lora_network`
 --
 CREATE DATABASE IF NOT EXISTS `lora_network` DEFAULT CHARACTER SET armscii8 COLLATE armscii8_general_ci;
@@ -331,7 +332,7 @@ CREATE TABLE IF NOT EXISTS `motes` (
   `classC` tinyint(1) NOT NULL DEFAULT '0',
   `RJcount0_last` int(10) unsigned DEFAULT NULL,
   `JoinEUI` bigint(20) unsigned DEFAULT NULL
-) ENGINE=MyISAM AUTO_INCREMENT=12 DEFAULT CHARSET=armscii8;
+) ENGINE=MyISAM AUTO_INCREMENT=19 DEFAULT CHARSET=armscii8;
 
 -- --------------------------------------------------------
 
@@ -415,7 +416,7 @@ ALTER TABLE `servers`
 -- AUTO_INCREMENT for table `motes`
 --
 ALTER TABLE `motes`
-MODIFY `ID` int(10) unsigned NOT NULL AUTO_INCREMENT,AUTO_INCREMENT=12;--
+MODIFY `ID` int(10) unsigned NOT NULL AUTO_INCREMENT,AUTO_INCREMENT=19;--
 -- Database: `lora_network6000ff`
 --
 CREATE DATABASE IF NOT EXISTS `lora_network6000ff` DEFAULT CHARACTER SET armscii8 COLLATE armscii8_general_ci;

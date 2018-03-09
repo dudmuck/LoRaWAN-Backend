@@ -150,6 +150,7 @@ typedef enum eLoRaMacMoteCmd
      * BeaconFreqAns
      */
     MOTE_MAC_BEACON_FREQ_ANS         = 0x13,
+    MOTE_MAC_DEVICE_MODE_IND         = 0x20
 }LoRaMacMoteCmd_t;
 
 typedef enum eLoRaMacSrvCmd
@@ -205,7 +206,8 @@ typedef enum eLoRaMacSrvCmd
      * BeaconFreqReq
      */
     SRV_MAC_BEACON_FREQ_REQ          = 0x13,
-}LoRaMacSrvCmd_t;
+    SRV_MAC_DEVICE_MODE_CONF         = 0x20
+} LoRaMacSrvCmd_t;
 
 /**
  * LoRaMAC receive window 2 channel parameters
@@ -242,4 +244,7 @@ typedef struct sRx2ChannelParams
 #define DR_13       13
 #define DR_14       14
 #define DR_15       15
+
+#define CLASS_A     0
+#define CLASS_C     2
 /** \endcond */

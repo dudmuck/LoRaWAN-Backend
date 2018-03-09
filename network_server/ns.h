@@ -413,7 +413,7 @@ const char* sNS_finish_phy_downlink(mote_t* mote, const sql_t* sql, char classMo
 const char* hNS_to_sNS_downlink(MYSQL* sc, mote_t* mote, unsigned long reqtid, const char* requester, const uint8_t *pay, uint8_t paylen, const DLMetaData_t* dlmd, json_object** ansJobj);
 int XmitDataReq_toAS(mote_t* mote, const uint8_t* FRMPayloadBin, uint8_t FRMPayloadLen);
 int sNS_sendHRStartReq(MYSQL* sc, mote_t* mote, uint32_t homeNetID);
-int sNS_band_conv(uint64_t devEui, uint32_t devAddr, float ULFreq, uint8_t ULDataRate, uint8_t rxdrOffset1, const char* ULRFRegion, DLMetaData_t* DLMetaData);
+int sNS_band_conv(uint8_t, uint64_t devEui, uint32_t devAddr, float ULFreq, uint8_t ULDataRate, uint8_t rxdrOffset1, const char* ULRFRegion, DLMetaData_t* DLMetaData);
 const char* sNS_uplink(mote_t* mote, const sql_t* sql, ULMetaData_t* ulmd, bool* discard);
 const char* sNS_uplink_finish(mote_t* mote, bool, sql_t* sql, bool* discard);
 int sNS_downlink(mote_t* mote, DLMetaData_t* dlMetaData, const uint8_t* rfBuf, uint8_t rfLen, const uint8_t* SNwkSIntKey_bin, const uint8_t* FNwkSIntKey_bin, const uint8_t* NwkSEncKey_bin);

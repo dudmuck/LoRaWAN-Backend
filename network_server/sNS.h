@@ -40,6 +40,7 @@ typedef struct {
     uint8_t confDLPHYPayloadBin[256];
     uint8_t confDLPHYPayloadLen;
     bool incrNFCntDown;
+    bool newFCntUp;
 
     struct {
         union {
@@ -69,6 +70,7 @@ typedef struct {
 
     float DLFreq1, DLFreq2;
 
+    uint8_t classModeInd;
     bool RStop;
     uint8_t type2_rejoin_count;
     bool answer_app_downlink;
