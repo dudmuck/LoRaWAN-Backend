@@ -26,6 +26,9 @@
                 "conf_file_16ch": "arib_16ch_gw_conf.json"
             }
         ],
+        "hosts": [
+            { "join": "e.2.1.0.0.0.0.0.0.8.a.d.f.7.4.6", "postTo": "localhost", "port": 3000 }
+        ],
         "nonce_age_days": 30,
         "encrypt_dl_mac_cmds": false,
         "KeyEnvelopeNSJS": {

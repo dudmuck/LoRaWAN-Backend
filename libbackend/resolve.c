@@ -348,6 +348,26 @@ getRecord(const char* name, int type)
     return rlStart;
 }
 
+/* return: 0 for not found locally, 1 for found and posted */
+static int
+local_lookup_post(CURL* curl, const char* hostname)
+{
+    struct _host_list* hl;
+
+    for (hl = host_list; hl != NULL; hl = hl->next) {
+        char url[296];
+        printf("local_lookup_post %s ::: %s port %u\n", hostname, hl->name, hl->port);
+        if (strcmp(hostname, hl->name) == 0) {
+            sprintf(url, "http://%s:%u", hl->postTo, hl->port);
+            printf("local found, posting to %s\n", url);
+            curl_easy_setopt(curl, CURLOPT_URL, url);
+            return 1;
+        }
+    }
+
+    return 0;
+}
+
 static volatile bool initialized = false;
 
 int resolve_post(CURL* curl, const char* hostname, bool verbose)
@@ -364,6 +384,10 @@ int resolve_post(CURL* curl, const char* hostname, bool verbose)
             return ret;
         }
         initialized = true;
+    }
+
+    if (local_lookup_post(curl, hostname)) {
+        return 0;
     }
 
     nl = getRecord(hostname, T_NAPTR);

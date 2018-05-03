@@ -455,7 +455,6 @@ hNS_XmitDataReq_toAS(mote_t* mote, const uint8_t* FRMPayloadBin, uint8_t FRMPayl
         }
 
         json_object_object_add(jo, ULMetaData, uj);
-        //ulmd_free(&ulmd);
 
         strcpy(hostname, "http://");
         strcat(hostname, destIDstr);
@@ -479,7 +478,7 @@ void hNS_uplink_finish(mote_t* mote, sql_t* sql)
 
 
 void
-hNS_service(mote_t* mote)
+hNS_service(mote_t* mote, time_t now)
 {
     h_t* h;
 

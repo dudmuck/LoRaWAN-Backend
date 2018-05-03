@@ -12,9 +12,9 @@
             "KEKLabel": "bar",
             "AESKey": "f0e0d0c0b0a090807060504030201000"
         },
-        "dnsOverride": {
-            "js_url": "http://localhost:3000"
-        }
+        "hosts": [
+            { "network": "000001", "postTo": "localhost", "port": 2000 }
+        ]
     }
 }
 

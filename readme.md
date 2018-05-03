@@ -32,6 +32,8 @@ Three executables are built, which must each be run separately, from the build d
 ## DNS setup
 LoRaWAN-backend performs hostname lookups using NAPTR and SRV records.
 
+Hosts can be added into json configure files to override DNS lookups or to skip requirement of requiring DNS lookups.  If you do not wish to setup DNS server, add `hosts` array to conf.json files.  If a join EUI or netID is found in conf.json, then DNS lookup is not performed.  Otherwise, if you want install DNS server, read the following:
+
 For testing on your local machine, i.e. when using a NetID or JoinEUI which doesn't exist on internet DNS server, install BIND on your local machine.
 
 Example named.conf and example zone files are provided here.  Modify your BIND server configuration files to add the example.com master zone as shown in named.conf, and point it to the example.com.zone file.

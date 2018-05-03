@@ -198,6 +198,9 @@ take_JoinAns(MYSQL* sc, mote_t* mote, unsigned lifetime, json_object* jobj, cons
 
     }
 
+    /* since new session, any unsent downlink is from previous session */
+    s->downlink.FRMPayloadLen = 0;
+
     printf(" Returning%u ", ret);
     return ret;
 } // ..take_JoinAns()
@@ -1947,13 +1950,21 @@ sNS_uplink(mote_t* mote, const sql_t* sql, ULMetaData_t* ulmd, bool* discard)
     if (rx_fhdr->FCtrl.ulBits.ACK) {
         MAC_PRINTF("ACK ");
         if (s->incrNFCntDown) {
+            printf("NFCntDown%u ", mote->session.NFCntDown);
             if (incr_sql_NFCntDown(mote->devAddr) == 0) {
                 s->incrNFCntDown = false;
                 mote->session.NFCntDown++; // update our RAM copy to same as that in database
             }
+            printf("NFCntDown%u ", mote->session.NFCntDown);
         }
         if (s->downlink.md.Confirmed && s->downlink.FRMPayloadLen > 0) {
+            printf("prev-downlink-confirmed-frm%u resend%ld ", s->downlink.FRMPayloadLen, s->downlink.resendAt - time(NULL));
             s->answer_app_downlink = true;  // to be completed after downlink sent
+            if (s->downlink.resendAt != 0) {
+                /* this is an ack from a downlink that was sent */
+                s->downlink.FRMPayloadLen = 0;
+                s->downlink.resendAt = 0;   // no more need to resend
+            }
         }
     } else if (s->incrNFCntDown)
         printf("\e[31mnotAck-expecting-ack\e[0m ");
@@ -2313,6 +2324,74 @@ accept:
     return uplinkResult;
 } // ..sNS_uplink_finish()
 
+static const char*
+downlinkBC(MYSQL* sc, mote_t* mote, const sql_t* sql, json_object** ansJobj)
+{
+    time_t now = time(NULL);
+    char buf[32];
+    s_t* s = mote->s;
+    bool Benabled = false;
+
+    if (s->ClassB.ping_period > 0) {
+        deviceProfileReq(sc, mote->devEui, mote->devAddr, SupportsClassB, buf, sizeof(buf));
+        if (buf[0] == 1)
+            Benabled = true;
+    }
+
+    s->downlink.resendAt = 0;
+    if (s->downlink.md.Confirmed)
+        printf(" Conf-Down ");
+    else
+        printf(" UNconf-Down ");
+
+    if (s->ClassB.ping_period > 0 && Benabled) {
+        const char* result;
+        sNS_schedule_downlink(mote);
+        result = sNS_finish_phy_downlink(mote, sql, 'B', ansJobj);  /* class B? send to fNS now */
+        printf("classB-send-result:%s\n", result);
+        if (result == Success) {
+            if (s->downlink.md.Confirmed) {
+                unsigned n;
+                deviceProfileReq(sc, mote->devEui, mote->devAddr, ClassBTimeout, buf, sizeof(buf));
+                sscanf(buf, "%u", &n);
+                if (n > 0)
+                    s->downlink.resendAt = now + n;
+                return NULL;    // json answer isnt sent until Ack uplink received
+            }
+            printf("resendAt%lu ", s->downlink.resendAt);
+        }
+        return result;
+    } else {
+        const char* result;
+        char buf[32];
+        deviceProfileReq(sc, mote->devEui, mote->devAddr, SupportsClassC, buf, sizeof(buf));
+        printf("SupportsClassC:%c ", buf[0]);
+        if (buf[0] == '1') {
+            /* LoRaWAN-1.1 will tell us device class, but LoRaWAN-1.0 will not */
+            if ((mote->session.OptNeg && s->classModeInd == CLASS_C) || !mote->session.OptNeg) {
+                sNS_schedule_downlink(mote);
+                result = sNS_finish_phy_downlink(mote, sql, 'C', ansJobj);  /* class C? send to fNS now */
+                printf("classC-send-result:%s\n", result);
+                if (result == Success) {
+                    if (s->downlink.md.Confirmed) {
+                        unsigned n;
+                        deviceProfileReq(sc, mote->devEui, mote->devAddr, ClassCTimeout, buf, sizeof(buf));
+                        sscanf(buf, "%u", &n);
+                        printf("ClassCTimeout:%u ", n);
+                        if (n > 0)
+                            s->downlink.resendAt = now + n;
+                        return NULL;    // json answer isnt sent until Ack uplink received
+                    }
+                    printf("resendAt%lu ", s->downlink.resendAt);
+                }
+                return result;
+            }
+        }
+    }
+
+    return NULL;
+}
+
 const char*
 hNS_to_sNS_downlink(MYSQL* sc, mote_t* mote, unsigned long reqTid, const char* requester, const uint8_t* frmPayload, uint8_t frmPayloadLength, const DLMetaData_t* dlmd, json_object** ansJobj)
 {
@@ -2333,9 +2412,18 @@ hNS_to_sNS_downlink(MYSQL* sc, mote_t* mote, unsigned long reqTid, const char* r
 
     if (!sql.OptNeg) {
         unsigned neededFCntDown = mote->session.NFCntDown;
-        if (s->incrNFCntDown) // previous downlink was confirmed
-            neededFCntDown++;
+        char buf[32];
+
         /* lorawan 1.0: when AFCntDown != NFCntDown, then FRMPayload is encrypted with wrong frame count */
+
+        deviceProfileReq(sc, mote->devEui, mote->devAddr, SupportsClassC, buf, sizeof(buf));
+        /* for lorawan1v0: if device profile supports ClassC, assume its always in classC */
+        if (buf[0] != '1') {
+            /* downlink sent in response to uplink */
+            if (s->incrNFCntDown) // previous downlink was confirmed
+                neededFCntDown++;
+        } /* else downlink sent immediately classC */
+
         if (dlmd->FCntDown != neededFCntDown) {
             printf("\e[33mFCntDown: AS gave %u but NS ", dlmd->FCntDown);
             if (s->incrNFCntDown) { // previous downlink was confirmed
@@ -2370,30 +2458,7 @@ hNS_to_sNS_downlink(MYSQL* sc, mote_t* mote, unsigned long reqTid, const char* r
         s->downlink.ansDest_ = malloc(strlen(requester)+1);
     strcpy(s->downlink.ansDest_, requester);
 
-
-    if (s->ClassB.ping_period > 0) {
-        const char* result;
-        sNS_schedule_downlink(mote);
-        result = sNS_finish_phy_downlink(mote, &sql, 'B', ansJobj);  /* class B? send to fNS now */
-        printf("classB-send-result:%s\n", result);
-        return result;
-    } else {
-        const char* result;
-        char buf[32];
-        deviceProfileReq(sc, mote->devEui, mote->devAddr, SupportsClassC, buf, sizeof(buf));
-        printf("SupportsClassC:%c ", buf[0]);
-        if (buf[0] == '1') {
-            /* LoRaWAN-1.1 will tell us device class, but LoRaWAN-1.0 will not */
-            if ((mote->session.OptNeg && s->classModeInd == CLASS_C) || !mote->session.OptNeg) {
-                sNS_schedule_downlink(mote);
-                result = sNS_finish_phy_downlink(mote, &sql, 'C', ansJobj);  /* class C? send to fNS now */
-                printf("classC-send-result:%s\n", result);
-                return result;
-            }
-        }
-    }
-
-    return NULL;
+    return downlinkBC(sc, mote, &sql, ansJobj);
 } // ..hNS_to_sNS_downlink()
 
 uint8_t
@@ -2412,10 +2477,12 @@ sNSDownlinkSent(mote_t* mote, const char* result, json_object** httpdAnsJobj)
     if (result == Success) {
         //printf("sNSDownlinkSent()-success ");
         if (tx_mhdr->bits.MType == MTYPE_UNCONF_DN) {
+            printf("NFCntDown%u ", mote->session.NFCntDown);
             if (s->incrNFCntDown && incr_sql_NFCntDown(mote->devAddr) == 0) {
                 mote->session.NFCntDown++; // update our RAM copy to same as that in database
                 s->incrNFCntDown = false;
             }
+            printf("NFCntDown%u ", mote->session.NFCntDown);
         }
         s->downlink.PHYPayloadLen = 0;
     } else
@@ -2562,7 +2629,7 @@ downlinkDone:
                     sprintf(destIDstr, "%06x", sql->roamingWithNetID);
                     sprintf(hostname, "%06x.%s", sql->roamingWithNetID, netIdDomain);
                     //printf(" sNS_frm_up->");
-                    ret = sendXmitDataReq(mote, "sNS_uplink->sendXmitDataReq", jo, destIDstr, hostname, FRMPayload, FRMPayloadBin, FRMPayloadLen, sNS_uplink_frm_answer);
+                    ret = sendXmitDataReq(mote, "sNS_finish_phy_downlink->sendXmitDataReq", jo, destIDstr, hostname, FRMPayload, FRMPayloadBin, FRMPayloadLen, sNS_uplink_frm_answer);
                     if (ret == Success) {
                         ret = NULL; // result is provided by sNS_XmitDataAnsCallback()
                     } else
@@ -2571,7 +2638,7 @@ downlinkDone:
                     ULMetaData_t ulmd;
                     printElapsed(mote);
                     if (ParseULMetaData(ulmd_json, &ulmd) == 0) {
-                        printf("sNS_uplink->");
+                        printf("sNS_finish_phy_downlink->");
                         if (hNS_XmitDataReq_toAS(mote, FRMPayloadBin, FRMPayloadLen, &ulmd) < 0) {
                             printf("\e[31mhNS_XmitDataReq_toAS() failed\[e0m\n");
                             ret = XmitFailed;
@@ -2582,7 +2649,7 @@ downlinkDone:
                     }
                 }
             } else
-                printf("\e[31msNS_uplink bad ulmd\e[0m\n");
+                printf("\e[31msNS_finish_phy_downlink bad ulmd\e[0m\n");
 
         }
     } else {
@@ -2616,7 +2683,7 @@ sNS_roamStop(mote_t* mote)
 }
 
 void
-sNS_service(mote_t* mote)
+sNS_service(mote_t* mote, time_t now)
 {
     s_t* s;
 
@@ -2679,6 +2746,21 @@ sNS_service(mote_t* mote)
 stopDone:
         s->RStop = false;
     } // ..if (s->RStop)
+
+    if (s->downlink.resendAt != 0) {
+        const char* result;
+        //printf("resend? ");
+        if (s->downlink.resendAt <= now) {
+            sql_t sql;
+            printf("resending %lds\n", s->downlink.resendAt - now);
+            sql_motes_query(sqlConn_lora_network, mote->devEui, mote->devAddr, &sql);
+            result = downlinkBC(sqlConn_lora_network, mote, &sql, NULL);
+            if (result)
+                answer_app_downlink(mote, result, NULL);
+        } /*else {
+            printf("no, in %lds\n", s->downlink.resendAt - now);
+        }*/
+    }
 
 } // ..sNS_service()
 

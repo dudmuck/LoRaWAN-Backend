@@ -399,7 +399,7 @@ parse_rf_join_req(const char* mt, json_object* inJobj, uint32_t network_id, json
     } else {
         /* lorawan1v0 */
         if (check_nonce(devEui64, rxNonce)) {
-            printf("\e[31mignoring join req due to devNonce\e[0m\n");
+            printf("\e[31mignoring join req due to devNonce %04x\e[0m\n", rxNonce);
             ret = ActivationDisallowed;
             goto jend;
         }

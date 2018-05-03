@@ -1298,5 +1298,5 @@ fNS_beacon_service(mote_t* mote)
                 answer_app_downlink(mote, result, NULL);
         }
     }
-}
+} // ..fNS_beacon_service()
 

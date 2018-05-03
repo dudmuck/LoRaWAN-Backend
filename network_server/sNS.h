@@ -66,11 +66,12 @@ typedef struct {
         uint8_t FRMPayloadBin[244];
         uint8_t FRMPayloadLen;
         bool FRMSent;
+        time_t resendAt;    // retry of unAck'd classC/classB confirmed downlink
     } downlink;
 
     float DLFreq1, DLFreq2;
 
-    uint8_t classModeInd;
+    uint8_t classModeInd;   // 1v1 only
     bool RStop;
     uint8_t type2_rejoin_count;
     bool answer_app_downlink;

@@ -390,7 +390,7 @@ uint32_t LoRa_GenerateDataFrameIntegrityCode(const block_t* block, const uint8_t
 
 /* hNS.c: */
 json_object * getAppSKeyEnvelope(MYSQL* sc, uint64_t devEui, uint32_t* outDevAddr, const char** res);
-void hNS_service(mote_t* mote);
+void hNS_service(mote_t* mote, time_t);
 const char* hNS_XmitDataReq_down(mote_t* mote, unsigned long reqTid, const char* requester, const uint8_t* frmPayload, uint8_t frmPayloadLength, DLMetaData_t* dlmd, uint32_t dst);
 //const char* hNS_XmitDataReq_toAS(mote_t* mote, const uint8_t* FRMPayloadBin, uint8_t FRMPayloadLen, json_object*);
 const char* hNS_XmitDataReq_toAS(mote_t* mote, const uint8_t* FRMPayloadBin, uint8_t FRMPayloadLen, const ULMetaData_t*);
@@ -407,7 +407,7 @@ const char* sNS_answer_RStart_Success(mote_t* mote, json_object* ans_jobj);
 void sNS_answer_RStart_Success_save(mote_t* mote);
 uint8_t sNS_get_dlphylen(const mote_t* mote);
 int sNS_force_rejoin(mote_t* mote, uint8_t type);
-void sNS_service(mote_t* mote);
+void sNS_service(mote_t* mote, time_t);
 const char* sNS_finish_phy_downlink(mote_t* mote, const sql_t* sql, char classMode, json_object** httpdAnsJobj);
 
 const char* hNS_to_sNS_downlink(MYSQL* sc, mote_t* mote, unsigned long reqtid, const char* requester, const uint8_t *pay, uint8_t paylen, const DLMetaData_t* dlmd, json_object** ansJobj);

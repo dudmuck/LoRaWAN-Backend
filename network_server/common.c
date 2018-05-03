@@ -1966,6 +1966,9 @@ sendAns:
 fDone:
     if (jsonFinish) {
         sNS_finish_phy_downlink(mote, &sql, 'A', NULL); // in response to uplink is class-A
+
+        /* done with uplink: clear for future classB/C downlinks */
+        mote->ULPHYPayloadLen = 0;
     }
 
     /* requester list and ulmd-gateway list is freed at start of next uplink */
@@ -2446,8 +2449,8 @@ void common_service()
         if (!mote)
             continue;
 
-        sNS_service(mote);
-        hNS_service(mote);
+        sNS_service(mote, now.tv_sec);
+        hNS_service(mote, now.tv_sec);
 
         if (mote->progress == PROGRESS_OFF)
             continue;

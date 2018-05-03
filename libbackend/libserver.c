@@ -798,6 +798,8 @@ parse_json_KeyEnvelope(const char* name, json_object* jobjSrv, key_envelope_t* k
     return 0;
 }
 
+struct _host_list* host_list = NULL; /**< list of hosts */
+
 int
 parse_server_config(const char* conf_file, int (*conf_callback)(json_object*, conf_t*), conf_t* out)
 {
@@ -890,6 +892,47 @@ parse_server_config(const char* conf_file, int (*conf_callback)(json_object*, co
         fail = true;
         printf("no netidDomain\n");
     }
+
+    /* override DNS lookups with hosts listed in json configuration */
+    if (json_object_object_get_ex(jobjSrv, "hosts", &obj)) {
+        struct _host_list* my_host_list = NULL;
+        int len, i;
+        len = json_object_array_length(obj);
+        for (i = 0; i < len; i++) {
+            char hostname[256];
+            json_object *o, *ajo = json_object_array_get_idx(obj, i);
+            if (host_list == NULL) {    // first time
+                host_list = calloc(1, sizeof(struct _host_list));
+                my_host_list = host_list;
+            } else {
+                my_host_list->next = calloc(1, sizeof(struct _host_list));
+                my_host_list = my_host_list->next;
+            }
+            if (json_object_object_get_ex(ajo, "postTo", &o)) {
+                my_host_list->postTo = malloc(strlen(json_object_get_string(o))+1);
+                strcpy(my_host_list->postTo, json_object_get_string(o));
+            }
+            if (json_object_object_get_ex(ajo, "join", &o)) {
+                strcpy(hostname, json_object_get_string(o));
+                strcat(hostname, ".");
+                strcat(hostname, out->joinDomain);
+                printf("JOIN HOSTNAME %s (length %u)\n", hostname, strlen(hostname)+1);
+                my_host_list->name = malloc(strlen(hostname)+1);
+                strcpy(my_host_list->name, hostname);
+            } else if (json_object_object_get_ex(ajo, "network", &o)) {
+                strcpy(hostname, json_object_get_string(o));
+                strcat(hostname, ".");
+                strcat(hostname, out->netIdDomain);
+                printf("NETWORK HOSTNAME %s\n", hostname);
+                my_host_list->name = malloc(strlen(hostname)+1);
+                strcpy(my_host_list->name, hostname);
+            }
+            if (json_object_object_get_ex(ajo, "port", &o)) {
+                my_host_list->port = json_object_get_int(o);
+            }
+        } // ..array interator
+
+    } // ..if have hosts array
 
     ret = 0;
     if (!fail && conf_callback)

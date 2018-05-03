@@ -26,10 +26,10 @@ THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLI
 #include "lorawan.h"
 #include "cmac.h"
 
-#define MIC_DEBUG_DOWN
+//#define MIC_DEBUG_DOWN
 //#define MIC_DEBUG_UP
 //#define CRYPT_DEBUG
-//#define HTTP_DEBUG
+#define HTTP_DEBUG
 //#define JSON_DEBUG
 
 #ifdef HTTP_DEBUG
@@ -487,3 +487,12 @@ void LoRa_GenerateJoinFrameIntegrityCode(bool verbose, const uint8_t key[], uint
 /* from resolve.c: */
 int resolve_post(CURL*, const char* hostname, bool verbose);
 const char* getRFRegion(const char* str);
+
+struct _host_list {
+    char* name;
+    char* postTo;
+    uint16_t port;
+    struct _host_list* next;  /**< next */
+};
+
+extern struct _host_list* host_list; /**< list of hosts preempting DNS lookups */

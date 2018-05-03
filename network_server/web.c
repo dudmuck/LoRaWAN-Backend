@@ -687,7 +687,7 @@ motes_page_iterator(void *cls,
     uint64_t devEui;
     struct Session *session = cls;
     appInfo_t* ai = session->appInfo;
-    static unsigned num_fields;
+    //static unsigned num_fields;
 
     switch (ai->form_state) {
         case FORM_STATE_START:
@@ -709,7 +709,7 @@ motes_page_iterator(void *cls,
                 break;
             }
             len = sprintf(buf, "<tr><th>forward to<br>NetID</th><th>DevEUI</th><th>DevAddr</th><th></th><th>Home<br>Profile</th><th>session<br>expiry</th></tr>\n");
-            num_fields = mysql_num_fields(ai->result);
+            //num_fields = mysql_num_fields(ai->result);
             ai->row = mysql_fetch_row(ai->result);
             if (ai->row)
                 ai->form_state = FORM_STATE_TABLE_ROWS;
@@ -719,9 +719,9 @@ motes_page_iterator(void *cls,
             }
             break;
         case FORM_STATE_TABLE_ROWS:
-            for (len = 0; len < num_fields; len++)
+            /*for (len = 0; len < num_fields; len++)
                 printf("%s, ", ai->row[len]);
-            printf("   --- num_fields %u\n", num_fields);
+            printf("   --- num_fields %u\n", num_fields);*/
 
 
             lora_session[0] = 0;
@@ -2871,6 +2871,7 @@ updateDeviceProfile(MYSQL* sc, const DeviceProfile_t* dp, my_ulonglong id)
         "%s = %u, " /* PingSlotDR */
         "%s = '%f', " /* PingSlotFreq */
         "%s = %u, " /* SupportsClassC */
+        "%s = %u, " /* ClassCTimeout */
         "%s = '%s', " /* RegParamsRevision */
         "%s = %u, " /* SupportsJoin */
         "%s = '%s', " /* MACVersion */
@@ -2890,6 +2891,7 @@ updateDeviceProfile(MYSQL* sc, const DeviceProfile_t* dp, my_ulonglong id)
         PingSlotDR,         dp->PingSlotDR,
         PingSlotFreq,       dp->PingSlotFreq,
         SupportsClassC,     dp->SupportsClassC,
+        ClassCTimeout,      dp->ClassCTimeout,
         RegParamsRevision,  dp->RegParamsRevision,
         SupportsJoin,       dp->SupportsJoin,
         MACVersion,         dp->MACVersion,
@@ -2904,6 +2906,7 @@ updateDeviceProfile(MYSQL* sc, const DeviceProfile_t* dp, my_ulonglong id)
         Supports32bitFCnt,  dp->Supports32bitFCnt,
         id
     );
+    printf("%s\r\n", query);
     if (sc == NULL) {
         ret = mq_send(mqd, query, strlen(query)+1, 0);
         if (ret < 0) {
@@ -2916,7 +2919,7 @@ updateDeviceProfile(MYSQL* sc, const DeviceProfile_t* dp, my_ulonglong id)
             printf("\e[31mupdateDeviceProfile() %s\e[0m\n", mysql_error(sc));
             return -1;
         }
-        printf("affected-rows:%llu\n", mysql_affected_rows(sc));
+        printf("\e33maffected-rows:%llu\e[0m\n", mysql_affected_rows(sc));
         if (mysql_affected_rows(sc) == 0) {
             /* nothing changed, just update time stamp */
             strcpy(query, "UPDATE DeviceProfiles SET timestamp = CURRENT_TIMESTAMP()");

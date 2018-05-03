@@ -173,7 +173,7 @@ static const char *
 save_frame(MYSQL* sc, const ULMetaData_t* ulmd, const uint8_t* decrypted, uint8_t payLen)
 {
     unsigned n;
-    struct tm timeinfo;
+    struct tm timeinfo, *ltm;
     time_t t;
     char str[128];
     char where[128];
@@ -214,8 +214,10 @@ save_frame(MYSQL* sc, const ULMetaData_t* ulmd, const uint8_t* decrypted, uint8_
 
     mysql_free_result(result);
 
+    t = time(NULL);
+    ltm = localtime(&t);
     strptime(ulmd->RecvTime, "%FT%T%Z", &timeinfo);
-    timeinfo.tm_isdst = 0;
+    timeinfo.tm_isdst = ltm->tm_isdst;
     t = mktime(&timeinfo);
 
     //printf("save frame id:%lu, time:%s,%lu  ", id, ulmd->RecvTime, t);
@@ -396,9 +398,11 @@ tlistAdd(const msg_t* msg, uint32_t reqSentTid)
     printf("add tlist %016"PRIx64" / %08x\n", msg->devEui, msg->devAddr);
     if (tlist) {
         for (list = tlist; list; list = list->next) {
-            printf(" (%016"PRIx64" / %08x) ", list->msg.devEui, list->msg.devAddr);
-            if (list->msg.devEui == NONE_DEVEUI && list->msg.devAddr == NONE_DEVADDR)
+            printf(" (had %016"PRIx64" / %08x) ", list->msg.devEui, list->msg.devAddr);
+            if (list->msg.devEui == NONE_DEVEUI && list->msg.devAddr == NONE_DEVADDR) {
+                printf("->add ");
                 goto add;
+            }
         }
 
         for (list = tlist; list->next; list = list->next)
@@ -415,6 +419,8 @@ tlistAdd(const msg_t* msg, uint32_t reqSentTid)
 
 add:
     list->tid = reqSentTid;
+    list->msg.devEui = msg->devEui;
+    list->msg.devAddr = msg->devAddr;
 
     memcpy(&list->msg, msg, sizeof(msg_t));
     if (msg->payLen > 0) {
