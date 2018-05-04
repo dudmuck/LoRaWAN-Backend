@@ -1,0 +1,21 @@
+# edit absolute paths below
+# copy to etc/systemd/system/lorawan.service
+[Unit]
+Description=LoRaWAN server
+After=mysql.service
+
+[Service]
+WorkingDirectory=<absolute-path-of-this-project>
+Type=forking
+ExecStart=<absolute-path-of-this-project>/startServer.sh
+Restart=always
+StandardOutput=syslog
+StandardError=syslog
+SyslogIdentifier=lorawan
+User=pi
+Group=pi
+Environment=
+
+[Install]
+WantedBy=multi-user.target
+
