@@ -768,7 +768,7 @@ init(const char* conf_filename)
     }
 
 
-    ret = MHD_start_daemon (MHD_USE_ERROR_LOG,
+    ret = MHD_start_daemon (MHD_NO_FLAG,
         conf.httpd_port, /* unsigned short port*/
         NULL, NULL, /* MHD_AcceptPolicyCallback apc, void *apc_cls */
         &lib_create_response, NULL, /* MHD_AccessHandlerCallback dh, void *dh_cls */

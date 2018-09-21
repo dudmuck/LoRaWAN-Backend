@@ -10,15 +10,12 @@ macro(use_c99)
   endif ()
 endmacro(use_c99)
 
-project (lora)
-
-#execute_process(COMMAND mysql_config --cflags OUTPUT_VARIABLE MYSQL_CFLAGS)
-#MESSAGE( STATUS "MYSQL_CFLAGS ${MYSQL_CFLAGS}" )
+project (lora C)
 
 set(CMAKE_BUILD_TYPE Debug)
 set(CMAKE_C_FLAGS_DEBUG "-g -O2 -Wall")
-#set(CMAKE_C_FLAGS  ${MYSQL_CFLAGS})
-set(CMAKE_C_FLAGS  "-O2 -Wall -I/usr/include/mysql")
+execute_process(COMMAND mariadb_config --include OUTPUT_VARIABLE DBINC OUTPUT_STRIP_TRAILING_WHITESPACE)
+set(CMAKE_C_FLAGS  "-O2 -Wall ${DBINC}")
 # The version number.
 set (lora_VERSION_MAJOR 1)
 set (lora_VERSION_MINOR 0)
@@ -43,8 +40,18 @@ add_library(libbackend SHARED
     libbackend/resolve.c
 )
 
-find_library(MYSQL_LIB mysqlclient /usr/lib64/mysql)
-target_link_libraries(libbackend json-c curl microhttpd gcrypt gpg-error ${MYSQL_LIB})
+find_library( MYSQL_LIBRARY
+    NAMES "mysqlclient" "mysqlclient_r" "mariadb"
+    PATHS "/lib/mysql"
+          "/lib64/mysql"
+          "/usr/lib"
+          "/usr/lib/mysql"
+          "/usr/lib64/mysql"
+          "/usr/local/lib/mysql"
+          "/usr/local/lib64/mysql"
+          "/usr/mysql/lib/mysql"
+          "/usr/mysql/lib64/mysql" )
+target_link_libraries(libbackend json-c curl microhttpd gcrypt gpg-error ${MYSQL_LIBRARY})
 
 list(APPEND ns_sources
     ${CMAKE_CURRENT_SOURCE_DIR}/network_server/common.c
@@ -85,8 +92,6 @@ include_directories(libbackend)
 
 use_c99()
 
-#find_package (Threads)
-
 # add the executable
 add_executable(network_server ${ns_sources})
 add_executable(join_server ${js_sources})
@@ -98,12 +103,9 @@ target_link_libraries(join_server libbackend)
 target_link_libraries(app_server libbackend rt)
 target_link_libraries(resolve resolv libbackend)
 
-find_package (Threads)
+find_package (Threads REQUIRED)
+message(STATUS "CMAKE_THREAD_LIBS_INIT=${CMAKE_THREAD_LIBS_INIT}")
 target_link_libraries(network_server ${MYSQL_LIB} libbackend m rt ${CMAKE_THREAD_LIBS_INIT})
-
-#target_link_libraries(network_server ${M_LIB})
-
-#MESSAGE( STATUS "CMAKE_BUILD_TYPE ${CMAKE_BUILD_TYPE}" )
 
 # add a target to generate API documentation with Doxygen
 find_package(Doxygen)

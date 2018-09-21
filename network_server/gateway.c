@@ -1466,7 +1466,7 @@ init(const char* conf_filename, int argHttpPort, int argNetID)
     if (argHttpPort != -1)
         c.httpd_port = argHttpPort;     // override conf.json port
 
-    ret = MHD_start_daemon (MHD_USE_ERROR_LOG,
+    ret = MHD_start_daemon (MHD_NO_FLAG,
         c.httpd_port,
         NULL, NULL,
         &lib_create_response, NULL,

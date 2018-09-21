@@ -674,7 +674,7 @@ init(const char* conf_filename)
     if (database_open(c.sql_hostname, c.sql_username, c.sql_password, c.sql_port, js_db_name, &sql_conn_lora_join, JS_VERSION) < 0)
         return NULL;
 
-    ret = MHD_start_daemon (MHD_USE_ERROR_LOG,
+    ret = MHD_start_daemon (MHD_NO_FLAG,
         c.httpd_port, /* unsigned short port*/
         NULL, NULL, /* MHD_AcceptPolicyCallback apc, void *apc_cls */
         &lib_create_response, NULL, /* MHD_AccessHandlerCallback dh, void *dh_cls */

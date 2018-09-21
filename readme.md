@@ -16,7 +16,7 @@ Import `structure.sql` using phpmysql or using mysql command line.
 ## Build
 Install dependencies:
 
-raspbian/debian: `sudo apt-get install libjson-c-dev libgcrypt20-dev libmicrohttpd-dev libcurl-dev`
+raspbian/debian: `sudo apt-get install libmariadb-dev libjson-c-dev libgcrypt20-dev libmicrohttpd-dev libcurl-dev`
 
 or RPM based: `sudo dnf install json-c-devel libgcrypt-devel libmicrohttpd-devel libcurl-devel`
 * `mkdir build`
