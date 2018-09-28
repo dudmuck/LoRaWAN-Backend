@@ -8,7 +8,7 @@
         "sql_hostname": "localhost",
         "sql_port": 3306,
         "nonce_age_days": 30,
-        "myJoinEui": "647fda800000012e",
+        "myJoinEui": "8000000000000034",
         "KeyEnvelopeNwk": {
             "KEKLabel": "foo",
             "AESKey": "000102030405060708090a0b0c0d0e0f"

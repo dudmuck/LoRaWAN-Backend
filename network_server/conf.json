@@ -16,7 +16,14 @@
         "starting_FCntUp": 0,
         "regionPath": "../network_server",
         "regions": [
-            { "name": "US902", "conf_file_8ch": "us902_hybrid_gw_conf.json" },
+            { "name": "US902A", "conf_file_8ch": "us902_hybridA_gw_conf.json" },
+            { "name": "US902B", "conf_file_8ch": "us902_hybridB_gw_conf.json" },
+            { "name": "US902C", "conf_file_8ch": "us902_hybridC_gw_conf.json" },
+            { "name": "US902D", "conf_file_8ch": "us902_hybridD_gw_conf.json" },
+            { "name": "US902E", "conf_file_8ch": "us902_hybridE_gw_conf.json" },
+            { "name": "US902F", "conf_file_8ch": "us902_hybridF_gw_conf.json" },
+            { "name": "US902G", "conf_file_8ch": "us902_hybridG_gw_conf.json" },
+            { "name": "US902H", "conf_file_8ch": "us902_hybridH_gw_conf.json" },
             { "name": "China779", "conf_file_8ch": "cn779.json" },
             { "name": "EU433", "conf_file_8ch": "eu433.json" },
             { "name": "Australia915", "conf_file_8ch": "au915_hybrid.json" },
@@ -27,7 +34,8 @@
             }
         ],
         "hosts": [
-            { "join": "e.2.1.0.0.0.0.0.0.8.a.d.f.7.4.6", "postTo": "localhost", "port": 3000 }
+            { "join": "e.2.1.0.0.0.0.0.0.8.a.d.f.7.4.6", "postTo": "localhost", "port": 3000 },
+            { "join": "4.3.0.0.0.0.0.0.0.0.0.0.0.0.0.8", "postTo": "localhost", "port": 3000 }
         ],
         "nonce_age_days": 30,
         "encrypt_dl_mac_cmds": false,

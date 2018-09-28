@@ -318,6 +318,7 @@ changed_region(const char* idStr, const char* rfRegion, appInfo_t* ai)
 {
     char query[512];
 
+    printf("changed_region(,%s) ", rfRegion);
     sprintf(query, "SELECT RFRegion FROM gateways WHERE eui = %s", idStr);
     if (mysql_query(sql_conn_ns_web, query)) {
         printf("\e[31m%s: %s\e[0m\n", query, mysql_error(sql_conn_ns_web));
@@ -327,14 +328,16 @@ changed_region(const char* idStr, const char* rfRegion, appInfo_t* ai)
     if (ai->result) {
         ai->row = mysql_fetch_row(ai->result);
         if (ai->row) {
+            printf("indb:%s ", ai->row[0]);
             if (strcmp(rfRegion, ai->row[0]) != 0) {
                 sscanf(idStr, "%"PRIu64, &ai->gatewayID);
                 ai->RFRegion = getRFRegion(rfRegion);
-                //printf("changed gateway region %"PRIx64", %s\n", ai->gatewayID, ai->RFRegion);
+                printf("changed gateway region %"PRIx64", %s ", ai->gatewayID, ai->RFRegion);
             }
         }
         mysql_free_result(ai->result);
     }
+    printf("\n");
 }
 
 /**
@@ -547,6 +550,14 @@ const char gw_css[] =
 const char* const region_strs[] = {
     EU868,
     US902,
+    US902A,
+    US902B,
+    US902C,
+    US902D,
+    US902E,
+    US902F,
+    US902G,
+    US902H,
     China470,
     China779,
     EU433,
@@ -1230,8 +1241,6 @@ profile_page_iterator(void *cls,
                     strcat(str, "</option>");
                 }
                 strcat(str, "</select>");
-//" <select name=\"%s\"> <option value=\"EU868\">EU868</option> <option value=\"US902\">US902</option> <option value=\"China779\">China779</option> <option value=\"EU433\">EU433</option> <option value=\"Australia915\">Australia915</option> <option value=\"China470\">China470</option> <option value=\"AS923\">AS923</option>%s</select>"
-//  yyy;
             } else {
                 // print element into form item name
                 snprintf(str, sizeof(str), ai->es[ai->i].form, ai->es[ai->i].element, query); 
@@ -3296,7 +3305,7 @@ NwkAddrStr_to_devAddrStr(appInfo_t* ai, char* failMsg, size_t sizeof_failMsg)
         return -1;
     }
     if (nwkAddr > (1 << nwkAddrBits)+1) {
-        snprintf(failMsg, sizeof_failMsg, "nwkAddr too large");
+        snprintf(failMsg, sizeof_failMsg, "nwkAddr too large (%x > %x)", nwkAddr, (1 << nwkAddrBits)+1);
         return -1;
     }
 

@@ -108,7 +108,7 @@ static int
 take_JoinAns(MYSQL* sc, mote_t* mote, unsigned lifetime, json_object* jobj, const char* senderID)
 {
     const char* res;
-    uint32_t zero = 0;
+    //uint32_t zero = 0;
     time_t until;
     time_t* untilPtr = NULL;
     int ret = 0;
@@ -155,8 +155,9 @@ take_JoinAns(MYSQL* sc, mote_t* mote, unsigned lifetime, json_object* jobj, cons
         memcpy(mote->session.NwkSEncKeyBin, mote->session.FNwkSIntKeyBin, LORA_CYPHERKEYBYTES);
         mote->session.OptNeg = false;
         if (ret == 0) {
+            deleteNeverUsedSessions(sc, mote->devEui);
             s->checkOldSessions = true; // perform at first good uplink
-            return add_database_session(sc, mote->devEui, untilPtr, mote->session.SNwkSIntKeyBin, mote->session.FNwkSIntKeyBin, mote->session.NwkSEncKeyBin, &zero, &zero, &mote->devAddr, false);
+            return add_database_session(sc, mote->devEui, untilPtr, mote->session.SNwkSIntKeyBin, mote->session.FNwkSIntKeyBin, mote->session.NwkSEncKeyBin, NULL, NULL, &mote->devAddr, false);
         } else printf("skip-add-database1v0 ");
     } else {
         /* LoRaWAN 1.1 */
@@ -190,10 +191,11 @@ take_JoinAns(MYSQL* sc, mote_t* mote, unsigned lifetime, json_object* jobj, cons
         mote->session.OptNeg = true;
 
         if (ret == 0) {
+            deleteNeverUsedSessions(sc, mote->devEui);
             /* TODO: the network server shall discard any uplink frames protected with the new security context that are received after the transmission of JoinAccept and before the first uplink frame that carries a RekeyInd command */
             s->checkOldSessions = true; // perform at first good uplink, upon receiving ReKeyInd
             s->ConfFCntDown = 0;
-            return add_database_session(sc, mote->devEui, untilPtr, mote->session.SNwkSIntKeyBin, mote->session.FNwkSIntKeyBin, mote->session.NwkSEncKeyBin, &zero, &zero, &mote->devAddr, true);
+            return add_database_session(sc, mote->devEui, untilPtr, mote->session.SNwkSIntKeyBin, mote->session.FNwkSIntKeyBin, mote->session.NwkSEncKeyBin, NULL, NULL, &mote->devAddr, true);
         } else printf("skip-add-database ");
 
     }
@@ -705,7 +707,7 @@ sNS_JoinAnsJson(MYSQL* sc, mote_t* mote, json_object* jdl, const char* result, c
     if (nReq == 0)
         printf("\e[31msNS_JoinAnsJson nothing sent\e[0m ");
 
-    deleteOldSessions(sc, mote, false);
+    deleteOldSessions(sc, mote->devEui, false);
 
     return ret;
 } // ..sNS_JoinAnsJson()
@@ -1245,7 +1247,7 @@ parse_mac_command(mote_t* mote, const ULMetaData_t* ulmd, const uint8_t* rx_cmd_
                 cmd_buf[1] = i_diff & 0xff; //lsbyte first byte
                 cmd_buf[2] = (i_diff >> 8) & 0xff;
 
-                if (ulmd->RFRegion == US902) {
+                if (strncmp(ulmd->RFRegion, US902, 5) == 0) {
                     cmd_buf[3] = (ult.gateway.beacon_ch + 1) & 7;   // beacon channel index
                     MAC_PRINTF(" ch%d ", cmd_buf[3]);
                 } else
@@ -1328,7 +1330,7 @@ parse_mac_command(mote_t* mote, const ULMetaData_t* ulmd, const uint8_t* rx_cmd_
                         printf("\e[31mABP-rekey\e[0m ");
                     else {
                         if (s->checkOldSessions) {
-                            deleteOldSessions(sqlConn_lora_network, mote, false);
+                            deleteOldSessions(sqlConn_lora_network, mote->devEui, false);
                             s->checkOldSessions = false;
                         } else
                             printf("\e[31mrekey-only-after-join-accept\e[0m ");
@@ -1573,7 +1575,7 @@ sNS_schedule_downlink(mote_t* mote)
             memcpy(txFRMPayload, s->downlink.FRMPayloadBin, s->downlink.FRMPayloadLen);   // buffer was already encrypted
             s->downlink.PHYPayloadLen = s->downlink.FRMPayloadLen + 1; // +1 for fport, FOpts length added in send_downlink()
             s->downlink.FRMSent = true;
-            if (needAnswer || s->downlink.md.Confirmed) {
+            if (/*needAnswer ||*/ s->downlink.md.Confirmed) {
                 MAC_PRINTF("conf ");
                 tx_mhdr->bits.MType = MTYPE_CONF_DN;
             } else {
@@ -1596,13 +1598,19 @@ sNS_schedule_downlink(mote_t* mote)
     }
 
     MAC_PRINTF("downlink-");
+#ifdef MAC_DEBUG
+    if (tx_mhdr->bits.MType == MTYPE_CONF_DN)
+        printf("Conf-");
+    else if (tx_mhdr->bits.MType == MTYPE_CONF_DN)
+        printf("Unconf-");
+#endif
     if (using_AFCntDwn) {
         FCntDown = s->AFCntDown;
-        MAC_PRINTF("\e[35mAFCntDwn%u\e[0m-", FCntDown);
+        MAC_PRINTF("\e[35mAFCntDwn%u incrNFCntDown = false \e[0m-", FCntDown);
         s->incrNFCntDown = false;
     } else {
         FCntDown = mote->session.NFCntDown;
-        MAC_PRINTF("\e[35mNFCntDwn%u\e[0m-", FCntDown);
+        MAC_PRINTF("\e[35mNFCntDwn%u incrNFCntDown = true \e[0m-", FCntDown);
         s->incrNFCntDown = true;
     }
     tx_fhdr->FCnt = FCntDown;
@@ -1789,7 +1797,7 @@ get_ch(float MHz, uint8_t DataRate, const char* RFRegion)
 /* MTYPE_UNCONF_UP || MTYPE_CONF_UP */
 /* return true for downlink needs to be sent */
 const char *
-sNS_uplink(mote_t* mote, const sql_t* sql, ULMetaData_t* ulmd, bool* discard)
+sNS_uplink(mote_t* mote, const sql_t* sql, ULMetaData_t* ulmd, bool* discard, char* reason)
 {
     const char* ret = Success;
     const uint8_t* ulFRMPayloadBin = NULL;
@@ -1801,6 +1809,7 @@ sNS_uplink(mote_t* mote, const sql_t* sql, ULMetaData_t* ulmd, bool* discard)
     s_t* s;
     mhdr_t* mhdr = (mhdr_t*)mote->ULPayloadBin;
 
+    strcpy(reason, "none");
     printElapsed(mote);
     /*MAC_PRINTF("sNS_uplink() ULT%s ", mote->bestULTokenStr);
     fflush(stdout);*/
@@ -1817,6 +1826,7 @@ sNS_uplink(mote_t* mote, const sql_t* sql, ULMetaData_t* ulmd, bool* discard)
     if (mote->session.until != ULONG_MAX) {    // if OTA mote
         if (mote->session.until == 0) {
             printf("none\n");
+            strcpy(reason, "no-session");
             return Other;
         }
 
@@ -1828,13 +1838,14 @@ sNS_uplink(mote_t* mote, const sql_t* sql, ULMetaData_t* ulmd, bool* discard)
                     printf("\e[31msNS_force_rejoin failed\e[0m\n");
             } else {
                 /* 1v0 end device is booted off */
-                int n = deleteOldSessions(sqlConn_lora_network, mote, true);
+                int n = deleteOldSessions(sqlConn_lora_network, mote->devEui, true);
 
                 if (s->downlink.FRMPayloadLen > 0)
                     answer_app_downlink(mote, XmitFailed, NULL);
 
                 printf("%d = deleteOldSessions() ", n);
                 if (n > 0) {
+                    strcpy(reason, "deleteFail");
                     return Other;
                 }
             }
@@ -1855,10 +1866,12 @@ sNS_uplink(mote_t* mote, const sql_t* sql, ULMetaData_t* ulmd, bool* discard)
     B = (ulmd->FCntUp + 0x10000) - mote->session.FCntUp;
     if (A < 0 && B > MAX_FCNT_GAP) {
         MAC_PRINTF("\e[31mreplay\e[0m\n");
+        strcpy(reason, "replay");
         return Other;
     }
     if (A > MAX_FCNT_GAP && B > MAX_FCNT_GAP) {
         MAC_PRINTF("\e[31mreplay\e[0m\n");
+        strcpy(reason, "replay");
         return Other;
     }
 
@@ -1940,8 +1953,17 @@ sNS_uplink(mote_t* mote, const sql_t* sql, ULMetaData_t* ulmd, bool* discard)
 
     MAC_PRINTF("micOK ");
 
+    if (mote->session.nullNFCntDown) {
+        char query[128];
+        MAC_PRINTF("initNFCntDown ");
+        sprintf(query, "UPDATE sessions SET NFCntDown = 0 WHERE DevAddr = %u ORDER BY createdAt DESC LIMIT 1", mote->devAddr);
+        if (mq_send(mqd, query, strlen(query)+1, 0) < 0)
+            perror("set NFCntDown mq_send");
+        mote->session.nullNFCntDown = false;
+    }
+
     if (!sql->OptNeg && s->checkOldSessions) {
-        deleteOldSessions(sqlConn_lora_network, mote, false);
+        deleteOldSessions(sqlConn_lora_network, mote->devEui, false);
         s->checkOldSessions = false;
     }
 
@@ -1950,11 +1972,13 @@ sNS_uplink(mote_t* mote, const sql_t* sql, ULMetaData_t* ulmd, bool* discard)
     if (rx_fhdr->FCtrl.ulBits.ACK) {
         MAC_PRINTF("ACK ");
         if (s->incrNFCntDown) {
-            printf("NFCntDown%u ", mote->session.NFCntDown);
+            printf("incrNFCntDown%u ", mote->session.NFCntDown);
             if (incr_sql_NFCntDown(mote->devAddr) == 0) {
                 s->incrNFCntDown = false;
+                printf("incrNFCntDown = false ");
                 mote->session.NFCntDown++; // update our RAM copy to same as that in database
-            }
+            } else
+                printf("\e[31mincrFail\e[0m ");
             printf("NFCntDown%u ", mote->session.NFCntDown);
         }
         if (s->downlink.md.Confirmed && s->downlink.FRMPayloadLen > 0) {
@@ -2305,13 +2329,14 @@ accept:
         }
 
         if (sql->roamState == roamsPASSIVE || sql->roamState == roamNONE) {
-            uplinkResult = sNS_uplink(mote, sql, u, discard);
+            char txt[32];
+            uplinkResult = sNS_uplink(mote, sql, u, discard, txt);
             s = mote->s;
             /* sNS_uplink() null return when result expected later from json answer */
             MAC_PRINTF("sNS %s ", sql->roamState);
             if (uplinkResult) {
                 if (uplinkResult != Success)
-                    printf("\e[31msNS %s = sNS_uplink()\e[0m\n", uplinkResult);
+                    printf(" sNS_uplink_finish \e[31msNS %s = sNS_uplink() %s\e[0m\n", uplinkResult, txt);
             } else
                 MAC_PRINTF("NULL");
             MAC_PRINTF(" = sNS_uplink() downlink.phyLen%u\e[0m\n", s->downlink.PHYPayloadLen);
@@ -2474,16 +2499,20 @@ sNSDownlinkSent(mote_t* mote, const char* result, json_object** httpdAnsJobj)
     s_t* s = mote->s;
     mhdr_t* tx_mhdr = (mhdr_t*)&s->downlink.PHYPayloadBin[0];
 
+    printf("sNSDownlinkSent(,%s,) ", result);
+    print_mtype(tx_mhdr->bits.MType);
     if (result == Success) {
         //printf("sNSDownlinkSent()-success ");
         if (tx_mhdr->bits.MType == MTYPE_UNCONF_DN) {
-            printf("NFCntDown%u ", mote->session.NFCntDown);
+            printf("sentUnConf NFCntDown%u ", mote->session.NFCntDown);
             if (s->incrNFCntDown && incr_sql_NFCntDown(mote->devAddr) == 0) {
                 mote->session.NFCntDown++; // update our RAM copy to same as that in database
                 s->incrNFCntDown = false;
             }
             printf("NFCntDown%u ", mote->session.NFCntDown);
-        }
+        } else
+            printf("sNSDownlinkSent(,%s,) mtype %02x=notUnConf ", result, tx_mhdr->bits.MType);
+
         s->downlink.PHYPayloadLen = 0;
     } else
         printf(" \e[31msNSDownlinkSent(,%s,)\e[0m ", result);
@@ -2582,6 +2611,7 @@ sNS_finish_phy_downlink(mote_t* mote, const sql_t* sql, char classMode, json_obj
         dlmd_free(&dlMetaData);
     }
 
+    printf(">>have result %s<< ", result); //yyy;
     if (result != NULL) // when result == NULL, downlink hasnt yet been sent
         sNSDownlinkSent(mote, result, httpdAnsJobj);
 

@@ -534,7 +534,9 @@ void fNS_uplink_direct(const gateway_t* gateway, const struct lgw_pkt_rx_s* rx_p
         ssize_t ulen = strlen(ultstr);
         //MAC_PRINTF("save snr as best %f ", rx_pkt->snr);
         mote->best_sq = sq;
+#ifdef RF_DEBUG
         printf("local-sq%d ", mote->best_sq);
+#endif
         mote->rx_snr = rx_pkt->snr;
 
         if (!mote->bestULTokenStr)
@@ -812,7 +814,7 @@ PRStartAnsCallback(MYSQL* sc, mote_t* mote, json_object* jobj, const char* rxRes
         }
 
         /* even if new session wasnt added, old sessions are always defunct when lifetime > 0 */
-        deleteOldSessions(sc, mote, false);
+        deleteOldSessions(sc, mote->devEui, false);
     } // ..if (lifetime > 0)
 
     xRStartAnsCallback(sc, false, mote, jobj, rxResult, senderID, rfBuf, rfLen, fMICup, lifetime);
@@ -1119,8 +1121,10 @@ bool fNS_uplink_finish(mote_t* mote, sql_t* sql, bool* discard)
     
     mhdr = (mhdr_t*)mote->ULPayloadBin;
 
+#ifdef RF_DEBUG
     printf(" fNS-");
     print_mtype(mhdr->bits.MType);
+#endif
     if (mhdr->bits.MType == MTYPE_REJOIN_REQ) {
         // any rejoin request received during passive fNS should be taken as restart of roaming 
         rejoin02_req_t* r2 = (rejoin02_req_t*)mote->ULPayloadBin;
@@ -1189,12 +1193,12 @@ bool fNS_uplink_finish(mote_t* mote, sql_t* sql, bool* discard)
 
         if (sql->roamState == roamNONE) {
             uint32_t NwkID, rxNetID, NwkAddr;
-            MAC_PRINTF("roamingOFF ");
+            RF_PRINTF("roamingOFF ");
             if (parseDevAddr(rx_fhdr->DevAddr, &rxNetID, &NwkID, &NwkAddr) < 0) {
                 printf("\e[31mbad DevAddr %08x\e[0m\n", rx_fhdr->DevAddr);
                 return true;   // Other
             }
-            MAC_PRINTF("fNS %08x: NwkID=%x, rxNetID=%06x NwkAddr:%x\n", rx_fhdr->DevAddr, NwkID, rxNetID, NwkAddr);
+            RF_PRINTF("fNS %08x: NwkID=%x, rxNetID=%06x NwkAddr:%x\n", rx_fhdr->DevAddr, NwkID, rxNetID, NwkAddr);
             if (rxNetID != myNetwork_id32) {
                 /* mote from some other network */
                 if (isNetID(sqlConn_lora_network, rxNetID, PRAllowed) == 1) {
@@ -1207,7 +1211,9 @@ bool fNS_uplink_finish(mote_t* mote, sql_t* sql, bool* discard)
                     else
                         sendProfileReq(mote, rxNetID);
                 } else {
+#ifdef RF_DEBUG
                     printf("%s\n", NoRoamingAgreement);
+#endif
                     *discard = true;
                 }
                 //TODO this mote: DevRoamingDisallowed;
@@ -1239,11 +1245,12 @@ ftry:
         }
 
         if (sql->roamState == roamsHANDOVER) {
+            char txt[32];
             /* this NS has MAC-layer control over this ED */
-            const char* uplinkResult = sNS_uplink(mote, sql, &mote->ulmd_local, discard);
+            const char* uplinkResult = sNS_uplink(mote, sql, &mote->ulmd_local, discard, txt);
             /* sNS_uplink() null return when result expected later from json answer */
             if (uplinkResult && uplinkResult != Success)
-                printf("\e[31mfNS %s = sNS_uplink()\e[0m\n", uplinkResult);
+                printf("\e[31mfNS %s = sNS_uplink() %s \e[0m\n", uplinkResult, txt);
             return false;   // any FRMPayload downlinks will be sent at jsonFinish
         } else if (sql->roamState == roamfPASSIVE) {
             const char* result = fNS_XmitDataReq_uplink(mote, sql);

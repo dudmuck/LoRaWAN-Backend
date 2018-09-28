@@ -222,6 +222,7 @@ typedef enum {
 
 typedef struct {
     uint32_t NFCntDown;
+    bool nullNFCntDown;
     uint32_t FCntUp;
     uint8_t SNwkSIntKeyBin[LORA_CYPHERKEYBYTES];
     uint8_t FNwkSIntKeyBin[LORA_CYPHERKEYBYTES];
@@ -309,7 +310,8 @@ void printElapsed(const mote_t* mote);
 mote_t* getMote(MYSQL* sc, struct _mote_list **moteList, uint64_t devEui, uint32_t devAddr);
 int getSession(MYSQL* sc, uint64_t devEui, uint32_t devAddr, uint8_t nth, session_t* out);
 my_ulonglong getMoteID(MYSQL* sc, uint64_t devEui, uint32_t devAddr, const char** result);
-int deleteOldSessions(MYSQL* sc, mote_t* mote, bool all);
+int deleteNeverUsedSessions(MYSQL* sc, uint64_t devEui);
+int deleteOldSessions(MYSQL* sc, uint64_t devEui, bool all);
 const char* getMotesWhere(MYSQL* sc, uint64_t devEui, uint32_t devAddr, char* out);
 void getWhere(uint64_t devEui, uint32_t devAddr, char* out);
 int sendXmitDataAns(bool toAS, json_object* ansJobj, const char* destIDstr, unsigned long reqTid, const char* result);
@@ -414,7 +416,7 @@ const char* hNS_to_sNS_downlink(MYSQL* sc, mote_t* mote, unsigned long reqtid, c
 int XmitDataReq_toAS(mote_t* mote, const uint8_t* FRMPayloadBin, uint8_t FRMPayloadLen);
 int sNS_sendHRStartReq(MYSQL* sc, mote_t* mote, uint32_t homeNetID);
 int sNS_band_conv(uint8_t, uint64_t devEui, uint32_t devAddr, float ULFreq, uint8_t ULDataRate, uint8_t rxdrOffset1, const char* ULRFRegion, DLMetaData_t* DLMetaData);
-const char* sNS_uplink(mote_t* mote, const sql_t* sql, ULMetaData_t* ulmd, bool* discard);
+const char* sNS_uplink(mote_t* mote, const sql_t* sql, ULMetaData_t* ulmd, bool* discard, char* reason);
 const char* sNS_uplink_finish(mote_t* mote, bool, sql_t* sql, bool* discard);
 int sNS_downlink(mote_t* mote, DLMetaData_t* dlMetaData, const uint8_t* rfBuf, uint8_t rfLen, const uint8_t* SNwkSIntKey_bin, const uint8_t* FNwkSIntKey_bin, const uint8_t* NwkSEncKey_bin);
 int hNs_to_sNS_JoinAns(MYSQL* sc, mote_t* mote, json_object* jobj, const char* rxResult, const char* senderID, const uint8_t* rfBuf, uint8_t rfLen);

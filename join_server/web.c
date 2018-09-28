@@ -369,7 +369,7 @@ ota_page_iterator (void *cls,
                 sprintf(netidStr, "%06x", netid);
             } else
                 netidStr[0] = 0;
-            len = sprintf(buf, "<tr><td>%"PRIx64"</td><td>%s</td><td>%s</td><td>%s</td><td><input type=\"submit\" name=\"del-%"PRIx64"\" value=\"delete\"></td><td><a href=\"%s/%"PRIx64"\">edit</a></td></tr>", eui64, ai->row[1], ai->row[2], netidStr, eui64, editURL, eui64);
+            len = sprintf(buf, "<tr><td>%016"PRIx64"</td><td>%s</td><td>%s</td><td>%s</td><td><input type=\"submit\" name=\"del-%"PRIx64"\" value=\"delete\"></td><td><a href=\"%s/%"PRIx64"\">edit</a></td></tr>", eui64, ai->row[1], ai->row[2], netidStr, eui64, editURL, eui64);
             ai->row = mysql_fetch_row(ai->result);
             if (ai->row)
                 ai->form_state = FORM_STATE_TABLE_ROWS;

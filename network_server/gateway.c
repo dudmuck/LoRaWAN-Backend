@@ -247,7 +247,7 @@ void parse_region_config(regional_t* rp, const char * file_buf)
             json_object *ajo = json_object_array_get_idx(obj, i);
             sscanf(json_object_get_string(ajo), "%x", &n);
             rp->init_ChMask[i] = n;
-            printf("ChMask[%u]:%04x\n", i, rp->init_ChMask[i]);
+            printf("\e[36mChMask[%u]:%04x\e[0m\n", i, rp->init_ChMask[i]);
         }
     }
 
@@ -798,8 +798,10 @@ parse_uplink(gateway_t* gateway, const uint8_t* user_buf, uint16_t length)
 
     if (rx_pkt.modulation == MOD_LORA) {
         RF_PRINTF("LORA ");
+#ifdef RF_DEBUG
         print_hal_sf(rx_pkt.datarate);
         print_hal_bw(rx_pkt.bandwidth);
+#endif
     } else if (rx_pkt.modulation == MOD_FSK)
         RF_PRINTF("FSK %dbps ", rx_pkt.datarate);
 
@@ -1294,6 +1296,22 @@ int ns_conf_json(json_object *jobjSrv, conf_t* c)
                     my_region_list->region.RFRegion = EU868;
                 else if (strcmp(name, US902) == 0)
                     my_region_list->region.RFRegion = US902;
+                else if (strcmp(name, US902A) == 0)
+                    my_region_list->region.RFRegion = US902A;
+                else if (strcmp(name, US902B) == 0)
+                    my_region_list->region.RFRegion = US902B;
+                else if (strcmp(name, US902C) == 0)
+                    my_region_list->region.RFRegion = US902C;
+                else if (strcmp(name, US902D) == 0)
+                    my_region_list->region.RFRegion = US902D;
+                else if (strcmp(name, US902E) == 0)
+                    my_region_list->region.RFRegion = US902E;
+                else if (strcmp(name, US902F) == 0)
+                    my_region_list->region.RFRegion = US902F;
+                else if (strcmp(name, US902G) == 0)
+                    my_region_list->region.RFRegion = US902G;
+                else if (strcmp(name, US902H) == 0)
+                    my_region_list->region.RFRegion = US902H;
                 else if (strcmp(name, China470) == 0)
                     my_region_list->region.RFRegion = China470;
                 else if (strcmp(name, China779) == 0)
@@ -1356,7 +1374,7 @@ int ns_conf_json(json_object *jobjSrv, conf_t* c)
 
         if (region->RFRegion == EU868) {
             region->regional.rx1_band_conv = rx1_band_conv_eu868;
-        } else if (region->RFRegion == US902) {
+        } else if (strncmp(region->RFRegion, US902, 5) == 0) {
             region->regional.rx1_band_conv = rx1_band_conv_us902;
             region->regional.get_ch = us902_get_ch;
         } else if (region->RFRegion == China779) {
@@ -1412,7 +1430,7 @@ init(const char* conf_filename, int argHttpPort, int argNetID)
     //char url[128];
 
     if (parse_server_config(conf_filename, ns_conf_json, &c) < 0) {
-        printf("parse_server_config(%s) failed\n", conf_filename);
+        printf("init() parse_server_config(%s) failed\n", conf_filename);
         return NULL;
     }
     strcpy(joinDomain, c.joinDomain);
@@ -1427,12 +1445,12 @@ init(const char* conf_filename, int argHttpPort, int argNetID)
     }
 
     if (fNS_init(c.sql_hostname, c.sql_username, c.sql_password, c.sql_port, dbName) < 0) {
-        printf("failed fNS_init()\n");
+        printf("init() failed fNS_init()\n");
         return NULL;
     }
 
     if (web_init(c.sql_hostname, c.sql_username, c.sql_password, c.sql_port, dbName) < 0) {
-        printf("failed fNS_init()\n");
+        printf("init() failed fNS_init()\n");
         return NULL;
     }
 
@@ -1443,14 +1461,14 @@ init(const char* conf_filename, int argHttpPort, int argNetID)
     sprintf(mq_name, "/ns%06x", myNetwork_id32);
     mqd = mq_open(mq_name, O_WRONLY | O_CREAT, 0666, &attr);
     if (mqd == (mqd_t)-1) {
-        perror("mq_open");
+        perror("init() mq_open");
         return NULL;
     }
 
     {
         pid = fork();
         if (pid < 0) {
-            perror("fork");
+            perror("init() fork");
             return NULL;
         } else if (pid == 0) {
             // child process
@@ -1475,8 +1493,9 @@ init(const char* conf_filename, int argHttpPort, int argNetID)
         MHD_OPTION_END
     );
     if (ret != NULL)
-        printf("httpd port %u\n", c.httpd_port);
-
+        printf("init() httpd port %u\n", c.httpd_port);
+    else
+        printf("init() NULL == MHD_start_daemon()\n");
 
     return ret;
 }

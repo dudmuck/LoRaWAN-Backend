@@ -71,7 +71,9 @@ create_mote(MYSQL* sc, mote_t **m_pptr, uint64_t devEui, uint32_t devAddr)
 {
     mote_t* mote;
 
+#ifdef RF_DEBUG
     printf("\e[35;1m create mote %016"PRIx64" / %08x ", devEui, devAddr);
+#endif
 
     *m_pptr = malloc(sizeof(mote_t));
     if (!*m_pptr)
@@ -88,7 +90,9 @@ create_mote(MYSQL* sc, mote_t **m_pptr, uint64_t devEui, uint32_t devAddr)
         char query[512];
         const char* res;
         my_ulonglong id = getMoteID(sc, NONE_DEVEUI, devAddr, &res);
+#ifdef RF_DEBUG
         printf(" search-id%llu-on-%08x(%u) ", id, devAddr, devAddr);
+#endif
         sprintf(query, "SELECT DevEUI FROM motes WHERE ID = %llu", id);
         if (mysql_query(sc, query)) {
             printf("\n%s\n", query);
@@ -110,7 +114,9 @@ create_mote(MYSQL* sc, mote_t **m_pptr, uint64_t devEui, uint32_t devAddr)
 
     mote->devAddr = devAddr;
 
+#ifdef RF_DEBUG
     printf("\e[0m\n");
+#endif
     return 0;
 }
 
@@ -432,7 +438,9 @@ GetMoteMtype(MYSQL* sc, const uint8_t* PHYPayloadBin, bool *jReq/*, const char* 
     *jReq = false;
 
     //printf("GetMoteType ");
+#ifdef RF_DEBUG
     print_mtype(mhdr->bits.MType);
+#endif
     if (mhdr->bits.MType == MTYPE_REJOIN_REQ) {
         rejoin02_req_t* r2 = (rejoin02_req_t*)PHYPayloadBin;
         //printf(" type%u ", r2->type);
@@ -562,15 +570,79 @@ getMoteIDfromDevEUI(MYSQL* sc, uint64_t devEui)
     return ret;
 } // ..getMoteIDfromDevEUI();
 
+static void free_mote(mote_t* mote)
+{
+    if (mote->f)
+        free(mote->f);
+    if (mote->s)    /* TODO: free sNS */
+        free(mote->s);
+    if (mote->h)
+        free(mote->h);
+    if (mote->bestULTokenStr)
+        free(mote->bestULTokenStr);
+
+    free(mote);
+}
+
+int
+deleteNeverUsedSessions(MYSQL* sc, uint64_t devEui)
+{
+    struct _mote_list* my_mote_list;
+    MYSQL_RES *result;
+    MYSQL_ROW row;
+    int ret = -1;
+    char query[128];
+    my_ulonglong id = getMoteIDfromDevEUI(sc, devEui);
+
+    printf("deleteNeverUsedSessions() id%llu ", id);
+
+    sprintf(query, "SELECT DevAddr FROM sessions WHERE ID = %llu AND FCntUp IS NULL", id);
+    if (mysql_query(sc, query)) {
+        printf("\e[31m%s ---- %s\e[0m\n", query, mysql_error(sc));
+        return ret;
+    }
+    result = mysql_use_result(sc);
+    if (result == NULL) {
+        printf("No result.\n");
+        return ret;
+    }
+    while ((row = mysql_fetch_row(result))) {
+        uint32_t devAddr;
+        sscanf(row[0], "%u", &devAddr);
+        printf(" devAddr:%08x ", devAddr);
+        for (my_mote_list = mote_list; my_mote_list != NULL; my_mote_list = my_mote_list->next) {
+            mote_t* mote = my_mote_list->motePtr;
+            if (!mote)
+                continue;
+            printf("==%08x? ", mote->devAddr == devAddr);
+            if (mote->devAddr == devAddr) {
+                printf("free ");
+                free_mote(my_mote_list->motePtr);
+                my_mote_list->motePtr = NULL;
+            }
+        }
+    }
+    mysql_free_result(result);
+
+    sprintf(query, "DELETE FROM sessions WHERE ID = %llu AND FCntUp IS NULL", id);
+    fflush(stdout);
+    ret = mq_send(mqd, query, strlen(query)+1, 0);
+    if (ret < 0)
+        perror("deleteOldSessions mq_send");
+
+    printf("\n");
+    return ret;
+}
+
 /* when OTA end-device has been verified to be using new session, old sessions are removed */
 int
-deleteOldSessions(MYSQL* sc, mote_t* mote, bool all)
+deleteOldSessions(MYSQL* sc, uint64_t devEui, bool all)
 {   /* for OTA */
     char query[128];
     char str[128];
     int ret = -1;
     char newestDatetime[32];
-    my_ulonglong id = getMoteIDfromDevEUI(sc, mote->devEui);
+    my_ulonglong id = getMoteIDfromDevEUI(sc, devEui);
 
     printf("deleteOldSessions() id%llu ", id);
     newestDatetime[0] = 0;
@@ -608,7 +680,7 @@ deleteOldSessions(MYSQL* sc, mote_t* mote, bool all)
         strcat(query, newestDatetime);
         strcat(query, "'");
     } else
-        printf("\e[31mdelete all sessions %016"PRIx64"\e[0m\n", mote->devEui);
+        printf("\e[31mdelete all sessions %016"PRIx64"\e[0m\n", devEui);
 
     printf("deleting from sessions...");
     fflush(stdout);
@@ -1033,7 +1105,9 @@ getMotesWhere(MYSQL* sc, uint64_t devEui, uint32_t devAddr, char* out)
             sprintf(out, "ID = %u", moteID);
             ret = Success;
         } else {
+#ifdef RF_DEBUG
             printf(" DevAddr %08x not found\n", devAddr);
+#endif
             ret = UnknownDevAddr;
         }
         mysql_free_result(result);
@@ -1081,7 +1155,7 @@ sql_motes_query(MYSQL* sc, uint64_t devEui, uint32_t devAddr, sql_t* out)
 
     row = mysql_fetch_row(result);
     if (row == NULL) {
-        printf("%016"PRIx64" / %08x not in motes\n", devEui, devAddr);
+        RF_PRINTF("%016"PRIx64" / %08x not in motes\n", devEui, devAddr);
         mysql_free_result(result);
         if (devEui == NONE_DEVEUI)
             return UnknownDevAddr;
@@ -1204,12 +1278,21 @@ getSession(MYSQL* sc, uint64_t devEui, uint32_t devAddr, uint8_t nth, session_t*
     MYSQL_ROW row = mysql_fetch_row(result);
     ret = 0;
     if (row != NULL) {
-        if (row[3] == NULL)
-            printf("\e[31mNULL NFCntDown\[e0m\n");
-        else
+        if (row[3] == NULL) {
+            printf("NULL NFCntDown\n");
+            out->NFCntDown = 0;
+            out->nullNFCntDown = true;
+        } else {
+            out->nullNFCntDown = false;
             sscanf(row[3], "%u", &out->NFCntDown);
+        }
 
-        sscanf(row[4], "%u", &out->FCntUp);
+        if (row[4] == NULL) {
+            printf("NULL FCntUp (first uplink)\n");
+            out->FCntUp = 0;
+        } else
+            sscanf(row[4], "%u", &out->FCntUp);
+
         if (row[6])
             memcpy(out->SNwkSIntKeyBin, row[6], LORA_CYPHERKEYBYTES);
         if (row[5])
@@ -1241,12 +1324,16 @@ getSession(MYSQL* sc, uint64_t devEui, uint32_t devAddr, uint8_t nth, session_t*
             out->next = false;
 
     } else {    /* no row means mote exists, but no session at this time */
+#ifdef RF_DEBUG
         printf(" session-no-row ");
+#endif
         out->expired = true;
     }
 
+#ifdef RF_DEBUG
     printf("session-free-result  ");
     fflush(stdout);
+#endif
     mysql_free_result(result);
 
     return ret;
@@ -1777,9 +1864,10 @@ finish(mote_t* mote, bool jsonFinish)
         strcpy(mote->ulmd_local.FNSULToken, mote->bestULTokenStr);
     } // ..if (!jsonFinish)
 
-
+#ifdef RF_DEBUG
     printElapsed(mote);
     printf("\nfinish(,%u) %016"PRIx64" / %08x ", jsonFinish, mote->devEui, mote->devAddr);
+#endif
     sqlResult = sql_motes_query(sqlConn_lora_network, mote->devEui, mote->devAddr, &sql);
     if (sqlResult != Success) {
         if (jsonFinish) {
@@ -1788,7 +1876,7 @@ finish(mote_t* mote, bool jsonFinish)
         } else {
             /* let unknown devAddr thru, might belong to net this NS has roaming agreement with */
             if (mote->devEui != NONE_DEVEUI) {
-                printf("%s sql-setting-discard ", sqlResult);
+                RF_PRINTF("%s sql-setting-discard ", sqlResult);
                 ret.discard = 1;    /* remove this now */
                 ret.skip_next = 1;
                 return ret; // dont have this mote in our database, cant do anything with it 
@@ -1796,8 +1884,9 @@ finish(mote_t* mote, bool jsonFinish)
         }
     } // ..if (sqlResult != Success)
 
-
+#ifdef RF_DEBUG
     printf(" roam%s ", sql.roamState);
+#endif
     if (sql.roamState != roamNONE) {
         if (sql.roamExpired) {
             printf(" end-roaming-expired ");
@@ -2480,15 +2569,7 @@ void common_service()
         if (mote->progress == PROGRESS_OFF) {
             mote->new = false;
             if (flags.discard) {
-                if (mote->f)
-                    free(mote->f);
-                if (mote->s)    /* TODO: free sNS */
-                    free(mote->s);
-                if (mote->h)
-                    free(mote->h);
-                if (mote->bestULTokenStr)
-                    free(mote->bestULTokenStr);
-                free(mote);
+                free_mote(mote);
                 my_mote_list->motePtr = NULL;
             } 
         }

@@ -189,6 +189,14 @@ struct Request
 
 extern const char EU868[];
 extern const char US902[];
+extern const char US902A[];
+extern const char US902B[];
+extern const char US902C[];
+extern const char US902D[];
+extern const char US902E[];
+extern const char US902F[];
+extern const char US902G[];
+extern const char US902H[];
 extern const char China779[];
 extern const char China470[];
 extern const char EU433[];

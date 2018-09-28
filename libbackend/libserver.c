@@ -10,6 +10,14 @@ THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLI
 
 const char EU868[] = "EU868";
 const char US902[] = "US902";
+const char US902A[] = "US902A";
+const char US902B[] = "US902B";
+const char US902C[] = "US902C";
+const char US902D[] = "US902D";
+const char US902E[] = "US902E";
+const char US902F[] = "US902F";
+const char US902G[] = "US902G";
+const char US902H[] = "US902H";
 const char China470[] = "China470";
 const char China779[] = "China779";
 const char EU433[] = "EU433";
@@ -1785,6 +1793,22 @@ getRFRegion(const char* str)
         return EU868;
     else if (strcmp(str, US902) == 0)
         return US902;
+    else if (strcmp(str, US902A) == 0)
+        return US902A;
+    else if (strcmp(str, US902B) == 0)
+        return US902B;
+    else if (strcmp(str, US902C) == 0)
+        return US902C;
+    else if (strcmp(str, US902D) == 0)
+        return US902D;
+    else if (strcmp(str, US902E) == 0)
+        return US902E;
+    else if (strcmp(str, US902F) == 0)
+        return US902F;
+    else if (strcmp(str, US902G) == 0)
+        return US902G;
+    else if (strcmp(str, US902H) == 0)
+        return US902H;
     else if (strcmp(str, China779) == 0)
         return China779;
     else if (strcmp(str, China470) == 0)
