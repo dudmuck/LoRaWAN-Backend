@@ -8,6 +8,33 @@ THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLI
 */
 #include "ns.h"
 
+MYSQL*
+dbConnect(const char* dbhostname, const char* dbuser, const char* dbpass, uint16_t dbport, const char *dbName)
+{
+    MYSQL *ret;
+    ret = mysql_init(NULL);
+    if (ret == NULL) {
+        fprintf(stderr, "child Failed to initialize: %s\n", mysql_error(ret));
+        return NULL;
+    }
+
+    /* enable re-connect */
+    my_bool reconnect = 1;
+    if (mysql_options(ret, MYSQL_OPT_RECONNECT, &reconnect) != 0) {
+        fprintf(stderr, "child mysql_options() failed\n");
+        return NULL;
+    }
+
+    /* Connect to the server */
+    if (!mysql_real_connect(ret, dbhostname, dbuser, dbpass, dbName, dbport, NULL, 0))
+    {
+        fprintf(stderr, "child Failed to connect to server: %s\n", mysql_error(ret));
+        return NULL;
+    }
+
+    return ret;
+}
+
 int
 child(const char* mqName, const char* dbhostname, const char* dbuser, const char* dbpass, uint16_t dbport, const char *dbName)
 {
@@ -15,6 +42,8 @@ child(const char* mqName, const char* dbhostname, const char* dbuser, const char
     struct mq_attr attr;
     char msg[MQ_MSGSIZE+1];
     unsigned pri;
+    bool dbConnected;
+    //mqd_t mqd = mq_open(mqName, O_RDONLY | O_NONBLOCK);
     mqd_t mqd = mq_open(mqName, O_RDONLY);
     if (mqd == (mqd_t)-1) {
         perror("child mq_open");
@@ -39,46 +68,43 @@ child(const char* mqName, const char* dbhostname, const char* dbuser, const char
         }
     } while (attr.mq_curmsgs > 0);
 
-    sql_conn = mysql_init(NULL);
-    if (sql_conn == NULL) {
-        fprintf(stderr, "Failed to initialize: %s\n", mysql_error(sql_conn));
+    sql_conn = dbConnect(dbhostname, dbuser, dbpass, dbport, dbName);
+    if (sql_conn == NULL)
         return -1;
-    }
 
-    /* enable re-connect */
-    my_bool reconnect = 1;
-    if (mysql_options(sql_conn, MYSQL_OPT_RECONNECT, &reconnect) != 0) {
-        fprintf(stderr, "mysql_options() failed\n");
-        return -1;
-    }
-
-    printf("database connect %s\n", dbName);
-    /* Connect to the server */
-    if (!mysql_real_connect(sql_conn, dbhostname, dbuser, dbpass, dbName, dbport, NULL, 0))
-    {
-        fprintf(stderr, "Failed to connect to server: %s\n", mysql_error(sql_conn));
-        return -1;
-    }
+    dbConnected = true;
 
     for (;;) {
-        //unsigned n;
-        ssize_t s = mq_receive(mqd, msg, sizeof(msg), &pri);
+        struct timespec tm;
+        clock_gettime(CLOCK_REALTIME, &tm);
+        tm.tv_sec += 600;
+        ssize_t s = mq_timedreceive(mqd, msg, sizeof(msg), &pri, &tm);
         if (s == -1) {
-            perror("mq_receive");
-            sleep(1);
+            if (errno == ETIMEDOUT) {
+                if (dbConnected) {
+                    mysql_close(sql_conn);
+                    dbConnected = false;
+                }
+            } else {
+                perror("child mq_receive");
+                sleep(1);
+            }
             continue;
+        } else if (!dbConnected) {
+            sql_conn = dbConnect(dbhostname, dbuser, dbpass, dbport, dbName);
+            if (sql_conn == NULL) {
+                printf("\e[31mchild: failed to reconnect\e[0m\n");
+                continue;
+            }
+            dbConnected = true;
         }
-        //printf("\e[7mchild %zu \"%s\" ", s, msg);
         if (mysql_query(sql_conn, msg)) {
             unsigned err = mysql_errno(sql_conn);
             printf("\n\e[31m############ child %d: %s ##############\e[0m\n", err, mysql_error(sql_conn));
             break;
         }
-        /*n = mysql_affected_rows(sql_conn);
-        if (n == 0)
-            printf("\e[31m");
-        printf(" %u affected rows\e[0m\n", n);*/
-    }
+    } // ..for (;;)
+
     int i = mq_close(mqd);
     printf("\e[31m ########### child-done %d ###########\e[0m\n", i);
     fflush(stdout);
