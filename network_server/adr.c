@@ -110,7 +110,7 @@ void network_controller_adr(s_t* s, uint8_t DataRate, const char* RFRegion)
     } // ..if stable snr
 
 
-    if (s->force_adr || orig_ul_dr != DataRate || orig_txpwr_idx != s->txpwr_idx) {
+    if (s->flags.force_adr || orig_ul_dr != DataRate || orig_txpwr_idx != s->txpwr_idx) {
         uint8_t cmd_buf[MAC_CMD_SIZE];
         ADR_PRINTF("ADR mote \e[36mChMask[0]:%04x\e[0m txpwr%u ", s->ChMask[0], s->txpwr_idx);
         ADR_PRINTF("=dr%d\n", DataRate);

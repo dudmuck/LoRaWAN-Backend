@@ -164,15 +164,15 @@ arib_parse_start_mac_cmd(const uint8_t* buf, uint8_t buf_len, mote_t* mote)
                 put_queue_mac_cmds(s, 6, cmd_buf, true);
 
                 s->ChMask[0] |= 0x0004;  // ch2 enable
-                s->force_adr = true;  // ensure ch_mask is sent
+                s->flags.force_adr = true;  // ensure ch_mask is sent
                 printf("put NEW_CHANNEL_REQ [36mChMask[0]:%04x[0m", s->ChMask[0]);
                 break;
             case MOTE_MAC_NEW_CHANNEL_ANS:
                 idx++; // cmd
                 idx++; // status
                 s->ChMask[0] &= ~0x0003;  // ch0,1 disable
-                s->force_adr = true;  // ensure ch_mask is sent
-                s->send_start_mac_cmds = false;   // done
+                s->flags.force_adr = true;  // ensure ch_mask is sent
+                s->flags.send_start_mac_cmds = false;   // done
                 printf(" session_start = false, [36mChMask[0]:%04x[0m", s->ChMask[0]);
                 break;
             default:

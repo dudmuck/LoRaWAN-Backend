@@ -16,13 +16,9 @@ THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLI
 
 
 typedef struct {
-    bool checkOldSessions;
 
     uint16_t ChMask[MAX_CH_MASKS];  /**< channel mask enable bits of this mote */
 
-    bool send_start_mac_cmds; /**< network server processes regional-specific mac commands on mote initialization */
-    bool session_start_at_uplink;   /**< server sends initialization mac commands, set from join-accept */
-    bool force_adr; /**< used to send channel mask to end-node */
     struct {
         uint8_t len;
         bool needs_answer;
@@ -39,8 +35,6 @@ typedef struct {
     uint32_t AFCntDown;    /**< for next ULMetaData */
     uint8_t confDLPHYPayloadBin[256];
     uint8_t confDLPHYPayloadLen;
-    bool incrNFCntDown;
-    bool newFCntUp;
 
     struct {
         union {
@@ -72,9 +66,20 @@ typedef struct {
     float DLFreq1, DLFreq2;
 
     uint8_t classModeInd;   // 1v1 only
-    bool RStop;
     uint8_t type2_rejoin_count;
-    bool answer_app_downlink;
+
+
+    struct {
+        /* 0 */ uint16_t send_start_mac_cmds     : 1; /**< network server processes regional-specific mac commands on mote initialization */
+        /* 1 */ uint16_t session_start_at_uplink : 1;   /**< server sends initialization mac commands, set from join-accept */
+        /* 2 */ uint16_t force_adr               : 1; /**< used to send channel mask to end-node */
+        /* 3 */ uint16_t incrNFCntDown           : 1;
+        /* 4 */ uint16_t newFCntUp               : 1;
+        /* 5 */ uint16_t upConfreSent            : 1;
+        /* 6 */ uint16_t checkOldSessions        : 1;
+        /* 7 */ uint16_t RStop                   : 1;
+        /* 8 */ uint16_t answer_app_downlink     : 1;
+    } flags;
 } s_t;
 
 void put_queue_mac_cmds(s_t*, uint8_t cmd_len, uint8_t* cmd_buf, bool needs_answer);
