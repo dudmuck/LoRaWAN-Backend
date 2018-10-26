@@ -2054,7 +2054,10 @@ sendAns:
 
 fDone:
     if (jsonFinish) {
-        sNS_finish_phy_downlink(mote, &sql, 'A', NULL); // in response to uplink is class-A
+        if (uplinkResult == Success)
+            sNS_finish_phy_downlink(mote, &sql, 'A', NULL); // in response to uplink is class-A
+        else
+            printf("skipping sNS_finish_phy_downlink due to %s uplinkResult\n", uplinkResult);
 
         /* done with uplink: clear for future classB/C downlinks */
         mote->ULPHYPayloadLen = 0;

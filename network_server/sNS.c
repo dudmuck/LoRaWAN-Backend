@@ -2611,7 +2611,7 @@ sNS_finish_phy_downlink(mote_t* mote, const sql_t* sql, char classMode, json_obj
         dlmd_free(&dlMetaData);
     }
 
-    printf(">>have result %s<< ", result); //yyy;
+    printf(">>have result %s<< ", result);
     if (result != NULL) // when result == NULL, downlink hasnt yet been sent
         sNSDownlinkSent(mote, result, httpdAnsJobj);
 
